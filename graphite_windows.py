@@ -72,9 +72,9 @@ play_inf = 'idle'		#graphite is idle i guess
 
 def update_label_colors(root):
 	for w in root.winfo_children():
-		if isinstance(w,Label):
-			w.config(fg=_standardfg,bg=_standardbg)
-	window.after(1,update_label_colors(w))
+		if isinstance(w, Label):
+			w.config(fg=_standardfg, bg=_standardbg)
+		update_label_colors(w)
 #^^^ this barely works
 
 
@@ -302,11 +302,7 @@ def vol_scroll(event):
 	else:
 		vol_dec(event)
 
-if platform.system() == 'Windows':
-	vol_button.bind('<MouseWheel>', vol_scroll)
-else:
-	vol_button.bind('<Button-4>', vol_click)
-	vol_button.bind('<Button-5>', vol_dec)
+vol_button.bind('<MouseWheel>', vol_scroll)
 
 vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
 vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_standardfg))
