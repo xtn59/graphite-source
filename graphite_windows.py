@@ -6,7 +6,6 @@ from decimal import Decimal
 from mutagen import File
 import pygame
 from PIL import Image, ImageTk
-from mutagen import File
 import time
 from pynput import keyboard
 from pynput.keyboard import Key
@@ -82,17 +81,13 @@ song_name = Label(window, text=selected_song, font=fonty, bg=_standardbg)
 song_name.place(x=5, y=28, anchor='w')
 file_extension_label = Label(window, text=str(file_extension), font=fonty, bg=_standardbg)
 file_extension_label.place(x=475, y=28, anchor='e')
-
 coverty_label = Label(window,takefocus=0)
 coverty_label.place(x=165,y=400)
-
 coverty = Image.open(graph_logo)
 coverty = coverty.resize((150, 150), Image.Resampling.LANCZOS)
 coverty = ImageTk.PhotoImage(coverty)
-
 coverty_label.config(image=coverty)
 coverty_label.image = coverty
-
 graphite_ver = Label(window,text=str(gver),fg=_standardfg,bg=_standardbg,font=fonty2)
 graphite_ver.place(x=720,y=588,anchor='n')
 
@@ -195,7 +190,7 @@ def get_files_from_bar():
 			coverty = ImageTk.PhotoImage(coverty)
 
 			coverty_label.config(image=coverty)
-			coverty_label.image = cover
+			coverty_label.image = coverty
 	update_playing_info()
 
 dir_label.bind('<Button-1>', lambda event: get_files_from_bar())
@@ -212,25 +207,21 @@ def play_this_song():
 	global selected_song, paused, playing, current_index, file_extension, song_raw_name
 
 	if selected_song:
-		if not selected_song.startswith('[autoskip]'):
-			pygame.mixer.music.load(selected_song)
-			pygame.mixer.music.set_volume(float(global_volume))
-			pygame.mixer.music.play()
-			paused = False
-			playing = True
-			song_raw_name, file_extension = os.path.splitext(os.path.basename(selected_song))
-			song_name.config(text=song_raw_name)
-			file_extension_label.config(text=file_extension.lstrip('.'))
-			try:
-				ttag = TinyTag.get(str(selected_song))
-				artist_name = ttag.artist
-				artist_label.config(text=artist_name)
-			except Exception as e:
-				artist_name = 'graphite'
-				artist_label.config(text=artist_name)
-		else:
-			current_index += 1
-			play_this_song()
+		pygame.mixer.music.load(selected_song)
+		pygame.mixer.music.set_volume(float(global_volume))
+		pygame.mixer.music.play()
+		paused = False
+		playing = True
+		song_raw_name, file_extension = os.path.splitext(os.path.basename(selected_song))
+		song_name.config(text=song_raw_name)
+		file_extension_label.config(text=file_extension.lstrip('.'))
+		try:
+			ttag = TinyTag.get(str(selected_song))
+			artist_name = ttag.artist
+			artist_label.config(text=artist_name)
+		except Exception as e:
+			artist_name = 'graphite'
+			artist_label.config(text=artist_name)
 
 
 
@@ -496,7 +487,6 @@ def __updategputex():
 	update_label_colors(window)
 update_playing_info()
 window.bind('<Escape>', lambda event: __updategputex())
-#window.bind('<Tab>', lambda event: __updatebar())
 window.mainloop()
 
 #this is all, modify graphite however you want.
