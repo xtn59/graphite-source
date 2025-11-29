@@ -160,7 +160,7 @@ ttag = None
 
 
 def get_files_from_bar():
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path
+	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path, app_path
 	gapp_path = Path.home() / 'graphite-app'
 	path = filedialog.askdirectory(initialdir=str(gapp_path))	
 	if path:
@@ -194,7 +194,7 @@ def get_files_from_bar():
 			except Exception as e:
 				pass
 		else:
-			coverty = Image.open('graphite-app/graph_logo2.png')
+			coverty = Image.open(f'{app_path}/graph_logo2.png')
 			coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
 			coverty = ImageTk.PhotoImage(coverty)
 
