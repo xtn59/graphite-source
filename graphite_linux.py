@@ -4,34 +4,47 @@ import tkinter as tk
 from tkinter import filedialog
 from decimal import Decimal
 from mutagen import File
-import pygame
 from PIL import Image, ImageTk
 from mutagen import File
-import time
 from pynput import keyboard
 from pynput.keyboard import Key
 from pynput.keyboard import Listener
 from pathlib import Path
 import subprocess
-import platform
+import pygame
+import time
 import os
+
+
+artist_name = None
+def write_to_file(var, var2, var3):
+	if var3 != None:
+		with open(var, 'w') as song_file:
+			song_file.write(str(var3) + ' - ' + var2)
+	else:
+		with open(var, 'w') as song_file:
+			song_file.write(var2)
 
 pygame.init()
 pygame.mixer.init()
 
-system = platform.system()
 app_path = None
+song_path = None
 
 def app_dir_gph():
-	global system, app_path
+	global app_path, song_path
 
 	app_path = Path.home() / 'graphite-app'
+	song_path = app_path / '.song.txt'
+
 	if not app_path.exists():
 		app_path.mkdir()
+	if not song_path.exists():
+		song_path.touch()
 
 app_dir_gph()
-
-
+idle = 'idle'
+write_to_file(song_path, idle, artist_name)
 
 gver = 'graphite alpha' #graphite version
 
@@ -43,7 +56,7 @@ hovering = False
 file_extension = ''	#.flac .mp3 and everything else
 song_raw_name = None	#previously 'test'
 song_list = []		#0 will be the first song, 1 the second, blah blah blah
-current_index = 0
+current_index = 0	#same here i think, all this works by miracle
 artist_name = None
 
 _gpumode = "light"	#current theme
@@ -51,7 +64,7 @@ _standardfg = "black"	#foreground color, will apply to every label that has text
 _standardbg = "white"	#background color, will apply to every label that has a background
 _gpuflip = "dark"	#what theme to switch to if user switches themes
 
-start_geo = '480x640'	#starting geometry for the application, 480 pixels width, 640 pixels height
+start_geo = '480x276'	#starting geometry for the application, 480 pixels width, 640 pixels height
 
 fonty = ('JetBrains Mono','12')	
 			# ^^^ JetBrains Mono font required
@@ -74,7 +87,7 @@ def update_label_colors(root):
 	for w in root.winfo_children():
 		if isinstance(w,Label):
 			w.config(fg=_standardfg,bg=_standardbg)
-	window.after(20,update_label_colors(w))
+		update_label_colors(w)
 
 
 song_name = Label(window, text=selected_song, font=fonty, bg=_standardbg)
@@ -82,19 +95,16 @@ song_name.place(x=5, y=28, anchor='w')
 file_extension_label = Label(window, text=str(file_extension), font=fonty, bg=_standardbg)
 file_extension_label.place(x=475, y=28, anchor='e')
 coverty_label = Label(window,takefocus=0)
-coverty_label.place(x=165,y=400)
+coverty_label.place(x=350,y=90)
 graph_logo = f'{app_path}/graph_logo2.png'
 coverty = Image.open(graph_logo)
-coverty = coverty.resize((150, 150), Image.Resampling.LANCZOS)
+coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
 coverty = ImageTk.PhotoImage(coverty)
 coverty_label.config(image=coverty)
 coverty_label.image = coverty
 
 graphite_ver = Label(window,text=str(gver),fg=_standardfg,bg=_standardbg,font=fonty2)
 graphite_ver.place(x=720,y=588,anchor='n')
-latest_prompt = Label(window,text='- latest -',fg=_standardfg,bg=_standardbg,font=fonty)
-latest_prompt.place(x=720,y=55,anchor='n')
-
 passed_label = Label(window,text='',fg=_standardfg,bg=_standardbg,font=fonty,cursor='hand2')
 passed_label.place(x=425,y=28,anchor='e')
 def song_time():
@@ -121,17 +131,17 @@ song_time()
 
 
 dir_label = Label(window,text='file',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-dir_label.place(x=48, y=588, anchor='n')
+dir_label.place(x=48, y=218, anchor='n')
 play_button = Label(window,text='play/stop',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-play_button.place(x=432,y=588,anchor='n')
-vol_button = Label(window,text='vol: ' + str(global_volume),font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-vol_button.place(x=240,y=588,anchor='n')
+play_button.place(x=432,y=218,anchor='n')
+vol_button = Label(window,text=str(global_volume),font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
+vol_button.place(x=240,y=218,anchor='n')
 playing_info = Label(window,text=str(play_inf),font=fonty2,fg=_standardfg,bg=_standardbg)
-playing_info.place(x=240,y=612,anchor='n')
+playing_info.place(x=240,y=242,anchor='n')
 skip_left = Label(window,text='<- skip',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-skip_left.place(x=48,y=612,anchor='n')
+skip_left.place(x=48,y=242,anchor='n')
 skip_right = Label(window,text='skip ->',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-skip_right.place(x=432,y=612,anchor='n')
+skip_right.place(x=432,y=242,anchor='n')
 
 next_song1 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
 next_song1.place(x=5,y=100,anchor='w')
@@ -148,9 +158,9 @@ artist_label = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
 artist_label.place(x=48,y=39.5,anchor='n')
 ttag = None
 
+
 def get_files_from_bar():
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name
-	
+	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path
 	gapp_path = Path.home() / 'graphite-app'
 	path = filedialog.askdirectory(initialdir=str(gapp_path))	
 	if path:
@@ -176,7 +186,7 @@ def get_files_from_bar():
 			covert_file = os.path.join(path, files_covert[0])
 			try:
 				coverty = Image.open(covert_file)
-				coverty = coverty.resize((150, 150), Image.Resampling.LANCZOS)
+				coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
 				coverty = ImageTk.PhotoImage(coverty)
 
 				coverty_label.config(image=coverty)
@@ -185,14 +195,15 @@ def get_files_from_bar():
 				pass
 		else:
 			coverty = Image.open('graphite-app/graph_logo2.png')
-			coverty = coverty.resize((150, 150), Image.Resampling.LANCZOS)
+			coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
 			coverty = ImageTk.PhotoImage(coverty)
 
 			coverty_label.config(image=coverty)
-			coverty_label.image = cover
+			coverty_label.image = coverty
 	update_playing_info()
 
 dir_label.bind('<Button-1>', lambda event: get_files_from_bar())
+window.bind('<Tab>', lambda event: get_files_from_bar())
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
@@ -203,7 +214,7 @@ dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
 
 def play_this_song():
-	global selected_song, paused, playing, current_index, file_extension, song_raw_name
+	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path
 
 	if selected_song:
 		pygame.mixer.music.load(selected_song)
@@ -219,29 +230,39 @@ def play_this_song():
 			artist_name = ttag.artist
 			artist_label.config(text=artist_name)
 		except Exception as e:
-			artist_name = 'graphite'
-			artist_label.config(text=artist_name)
+			artist_name = None
+			artist_label.config(text='no artist')
+		write_to_file(song_path, song_raw_name, artist_name)
+
+
+
+
+
 
 def play_click(event=None):
-	global selected_song, paused, playing, play_inf
+	global selected_song, paused, playing, play_inf, artist_name
 
 	if not selected_song:
 		song_name.config(text='No audio selected !')
+		write_to_file(song_path, 'idle')
 		return
 	else:
 		play_inf = 'playing'
+		write_to_file(song_path, song_raw_name, artist_name)
 		play_this_song()
 
 def play_button_(event=None):
-	global play_inf,song_name,paused,playing
+	global play_inf,song_name,paused,playing,artist_name
 	if paused:
 		play_inf = 'playing'
+		write_to_file(song_path, song_raw_name, artist_name)
 		pygame.mixer.music.unpause()
 		play_button.config(fg=_standardfg)
 		paused = False
 		playing = True
 	elif playing:
 		play_inf = 'paused'
+		write_to_file(song_path, 'paused', artist_name)
 		pygame.mixer.music.pause()
 		paused = True
 		playing = False
@@ -271,7 +292,7 @@ def vol_click(event):
 		global_volume += Decimal('0.05')
 
 		pygame.mixer.music.set_volume(float(global_volume))
-		vol_button.config(text='vol: ' + str(global_volume))
+		vol_button.config(text=str(global_volume))
 
 def vol_dec(event):
 	global global_volume,vol_button
@@ -279,7 +300,7 @@ def vol_dec(event):
 	if global_volume > Decimal('0.00'):
 		global_volume -= Decimal('0.05')
 		pygame.mixer.music.set_volume(float(global_volume))
-		vol_button.config(text='vol: ' + str(global_volume))
+		vol_button.config(text=str(global_volume))
 
 def vol_scroll(event):
 	if event.delta > 0:
@@ -287,11 +308,11 @@ def vol_scroll(event):
 	else:
 		vol_dec(event)
 
-if platform.system() == 'Windows':
-	vol_button.bind('<MouseWheel>', vol_scroll)
-else:
-	vol_button.bind('<Button-4>', vol_click)
-	vol_button.bind('<Button-5>', vol_dec)
+vol_button.bind('<Button-4>', vol_click)
+vol_button.bind('<Button-5>', vol_dec)
+
+window.bind('<Up>', vol_click)
+window.bind('<Down>', vol_dec)
 
 vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
 vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_standardfg))
@@ -313,7 +334,9 @@ def skip_left_leave(event):
 	skip_left.config(fg=_standardfg)
 
 
-skip_left.bind('<Button-1>',skip_left_click)
+
+window.bind('<Left>', skip_left_click)
+skip_left.bind('<Button-1>', skip_left_click)
 skip_left.bind('<Enter>', skip_left_enter)
 skip_left.bind('<Leave>', skip_left_leave)
 
@@ -338,6 +361,7 @@ def skip_right_leave(event):
 	skip_right.config(fg=_standardfg)
 
 
+window.bind('<Right>', skip_right_click)
 skip_right.bind('<Button-1>',skip_right_click)
 skip_right.bind('<Enter>', skip_right_enter)
 skip_right.bind('<Leave>', skip_right_leave)
@@ -392,42 +416,50 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 
 	if selected_song is not None:
 		song_basename = os.path.basename(selected_song)
-		if len(song_basename) > 35:
-			basename = os.path.basename(selected_song)
-			song_name.config(text=basename[:len(basename) // 2] + '..')
-
+		if len(song_basename) > 75:
+			parts = len(song_basename) // 5
+			title = song_basename[:parts]
+			song_name.config(text=title + '..')
+		elif len(song_basename) > 59:
+			parts = len(song_basename) // 4
+			title = song_basename[:parts]
+			song_name.config(text=title + '..')
+		elif len(song_basename) > 39:
+			parts = len(song_basename) // 3
+			title = song_basename[:parts]
+			song_name.config(text=title + '..')
 
 	if next_song_name1 is not None:
-		if len(song1_ext[0]) > 45:
-			title = next_song_name1[:len(song1_ext[0]) // 2] + '..'
+		if len(song1_ext[0]) > 35:
+			title = next_song_name1[:len(song1_ext[0]) // 3] + '..'
 			next_song1.config(text=title, anchor='w')
 		else:
 			next_song1.config(text=song1_ext[0], anchor='w')
 
 	if next_song_name2 is not None:
-		if len(song2_ext[0]) > 45:
-			title = next_song_name2[:len(song2_ext[0]) // 2] + '..'
+		if len(song2_ext[0]) > 35:
+			title = next_song_name2[:len(song2_ext[0]) // 3] + '..'
 			next_song2.config(text=title, anchor='w')
 		else:
 			next_song2.config(text=song2_ext[0], anchor='w')
 
 	if next_song_name3 is not None:
-		if len(song3_ext[0]) > 45:
-			title = next_song_name3[:len(song3_ext[0]) // 2] + '..'
+		if len(song3_ext[0]) > 35:
+			title = next_song_name3[:len(song3_ext[0]) // 3] + '..'
 			next_song3.config(text=title, anchor='w')			
 		else:
 			next_song3.config(text=song3_ext[0], anchor='w')
 
 	if next_song_name4 is not None:
-		if len(song4_ext[0]) > 45:
-			title = next_song_name4[:len(song4_ext[0]) // 2] + '..'
+		if len(song4_ext[0]) > 35:
+			title = next_song_name4[:len(song4_ext[0]) // 3] + '..'
 			next_song4.config(text=title, anchor='w')
 		else:
 			next_song4.config(text=song4_ext[0], anchor='w')
 	
 	if next_song_name5 is not None:
-		if len(song5_ext[0]) > 45:
-			title = next_song_name5[:len(song5_ext[0]) // 2] + '..'
+		if len(song5_ext[0]) > 35:
+			title = next_song_name5[:len(song5_ext[0]) // 3] + '..'
 			next_song5.config(text=title, anchor='w')
 		else:
 			next_song5.config(text=song5_ext[0], anchor='w')
@@ -435,19 +467,18 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 
 	if playing == True:
 		play_inf = 'playing'
+		play_button.config(text='stop')
 	elif paused == True:
 		play_inf = 'paused'
+		play_button.config(text='play')
 	elif paused == False and playing == False:
 		play_inf = 'idle'
+		play_button.config(text='play')
 
 	if artist_name != None:
 		if len(artist_name) > 14:
 			artist_label.place_configure(x=48)
 			artist_label.config(text=artist_name[:len(artist_name) // 2] + '..')
-		if artist_name == "graphite":
-			artist_label.place_configure(x=48)    
-	elif artist_name == None:
-		artist_name = "graphite"
 
 
 
