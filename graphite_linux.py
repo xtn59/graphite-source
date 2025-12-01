@@ -10,14 +10,11 @@ from pynput import keyboard
 from pynput.keyboard import Key
 from pynput.keyboard import Listener
 from pathlib import Path
-import subprocess
-import pygame
-import time
-import os
+import time, pygame, os
 
 
 artist_name = None
-def write_to_file(var, var2, var3):
+def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be displayed as song, var to open .song.txt
 	if var3 != None:
 		with open(var, 'w') as song_file:
 			song_file.write(str(var3) + ' - ' + var2)
@@ -28,25 +25,115 @@ def write_to_file(var, var2, var3):
 pygame.init()
 pygame.mixer.init()
 
-app_path = None
-song_path = None
+app_path = Path.home() / '.config' / 'graphite-app'
+song_path = app_path / 'song.txt'
+config_path = app_path / 'graphite.conf'
+_standardfg = None	#foreground color, will apply to every label that has tex
+_standardbg = None	#background color, will apply to every label that has a background
+fonty = None		#big font
+fonty2 = None		#small font
+start_geo = None	#starting geometry for the application, 480 pixels width, 640 pixels heigh
+w_w = None		#window width
+w_h = None		#window height
+coverty_w = None	#album cover width
+coverty_h = None
+coverty_x = None
+coverty_y = None
+developermode = 0
+write_or_not = None
+_music_user_directory = None
+_logo2_directory = None
+_logo3_directory = None
+
+
+def overwrite_settings():
+	global app_path
+	with open(config_path, 'w') as cfg:
+		cfg.write('# Main settings\n')
+		cfg.write('1 foreground:white\n')
+		cfg.write('2 background:black\n')
+		cfg.write('3 big font:DejaVu Sans\n')
+		cfg.write('4 small font:DejaVu Sans\n')
+		cfg.write('5 window width:480\n')
+		cfg.write('6 window height:276\n')
+		cfg.write('\n')	
+		cfg.write('# Image settings\n')
+		cfg.write('7 album cover x:350\n')
+		cfg.write('8 album cover y:90\n')
+		cfg.write('9 album cover width:100\n')
+		cfg.write('10 album cover height:100\n')
+		cfg.write('# Directory and file settings\n')
+		cfg.write(f'11 directory to choose music from:{app_path}/\n')
+		cfg.write(f'12 logo2 directory:{app_path}/graph_logo2.png\n')
+		cfg.write(f'13 logo3 directory:{app_path}/graph_logo3.png\n')
+		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
+		cfg.write('# Misc settings\n')
+		cfg.write('write to song.txt:0\n')
+		cfg.write('# ^^^ Enable by turning it to 1\n')
+		cfg.write('developermode:0\n')
+		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
+		cfg.write('# ^^^ Helpful if you messed something up and want to fix it. Back up your settings in another .txt file first.\n')
+		cfg.write('# ^^^ Please proceed with caution.\n')	
+		cfg.write('# You can delete these comments, but keep everything else. ESPECIALLY developer mode.\n')
 
 def app_dir_gph():
-	global app_path, song_path
-
-	app_path = Path.home() / 'graphite-app'
-	song_path = app_path / '.song.txt'
+	global app_path, song_path, config_path, _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, developermode, write_or_not, start_geo, _music_user_directory, _logo2_directory, _logo3_directory
 
 	if not app_path.exists():
 		app_path.mkdir()
 	if not song_path.exists():
 		song_path.touch()
+	if not config_path.exists():
+		config_path.touch()
+		overwrite_settings()
+	
 
+	with open(config_path, 'r') as cfg:
+		for line in cfg:
+			if ':' not in line:
+				continue
+			key, value = line.split(':', 1)
+			value = value.strip()
+			
+			if key.strip() == '1 foreground':
+				_standardfg = str(value)
+			elif key.strip() == '2 background':
+				_standardbg = str(value)
+			elif key.strip() == '3 big font':
+				fonty = (str(value), 12)
+			elif key.strip() == '4 small font':
+				fonty2 = (str(value), 9)
+			elif key.strip() == '5 window width':
+				w_w = str(value)
+			elif key.strip() == '6 window height':
+				w_h = str(value)
+			elif key.strip() == '7 album cover x':
+				coverty_x = int(value)
+			elif key.strip() == '8 album cover y':
+				coverty_y = int(value)
+			elif key.strip() == '9 album cover width':
+				coverty_w = int(value)
+			elif key.strip() == '10 album cover height':
+				coverty_h = int(value)
+			elif key.strip() == '11 directory to choose music from':
+				_music_user_directory = str(value)
+			elif key.strip() == '12 logo2 directory':
+				_logo2_directory = str(value)
+			elif key.strip() == '13 logo3 directory':
+				_logo3_directory = str(value)
+			elif key.strip() == 'write to .song.txt':
+				write_or_not = int(value)
+			elif key.strip() == 'developermode':
+				developermode = int(value)
+	start_geo = f"{w_w}x{w_h}"
+	if developermode == 1:
+		overwrite_settings()
 app_dir_gph()
 idle = 'idle'
-write_to_file(song_path, idle, artist_name)
+if write_or_not == 1:
+	write_to_file(song_path, idle, artist_name)
 
-gver = 'graphite alpha' #graphite version
+gver = 'graphite 0.1' #graphite version
 
 global_volume = Decimal('1.00')
 selected_song = None
@@ -59,52 +146,30 @@ song_list = []		#0 will be the first song, 1 the second, blah blah blah
 current_index = 0	#same here i think, all this works by miracle
 artist_name = None
 
-_gpumode = "light"	#current theme
-_standardfg = "black"	#foreground color, will apply to every label that has text
-_standardbg = "white"	#background color, will apply to every label that has a background
-_gpuflip = "dark"	#what theme to switch to if user switches themes
-
-start_geo = '480x276'	#starting geometry for the application, 480 pixels width, 640 pixels height
-
-fonty = ('JetBrains Mono','12')	
-			# ^^^ JetBrains Mono font required
-fonty2 = ('JetBrains Mono','9')
-			# ^^^ Same here.
 
 window = Tk()		#sets window
 window.geometry(str(start_geo))	#sets starting geometry
 window.title('graphite')	#sets window title to graphite	
-icon = PhotoImage(file=f'{app_path}/graph_logo3.png')	#sets icon to graph_logo3.png from graphite-app folder. you can put your image here.	
+icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. *NOW you can put your image here.	
 window.iconphoto(True,icon)				#sets window logo to icon
 window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
 window.resizable(False,False)				#you cannot resize the window when this is uncommented.
 
 play_inf = 'idle'
-        
 
-
-def update_label_colors(root):
-	for w in root.winfo_children():
-		if isinstance(w,Label):
-			w.config(fg=_standardfg,bg=_standardbg)
-		update_label_colors(w)
-
-
-song_name = Label(window, text=selected_song, font=fonty, bg=_standardbg)
+song_name = Label(window, text='', font=fonty, fg=_standardfg, bg=_standardbg)
 song_name.place(x=5, y=28, anchor='w')
-file_extension_label = Label(window, text=str(file_extension), font=fonty, bg=_standardbg)
+file_extension_label = Label(window, text=str(file_extension), fg=_standardfg, font=fonty, bg=_standardbg)
 file_extension_label.place(x=475, y=28, anchor='e')
-coverty_label = Label(window,takefocus=0)
-coverty_label.place(x=350,y=90)
-graph_logo = f'{app_path}/graph_logo2.png'
+coverty_label = Label(window,takefocus=0,bg=_standardbg)
+coverty_label.place(x=coverty_x,y=coverty_y)
+graph_logo = f'{_logo2_directory}'
 coverty = Image.open(graph_logo)
-coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
+coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 coverty = ImageTk.PhotoImage(coverty)
 coverty_label.config(image=coverty)
 coverty_label.image = coverty
 
-graphite_ver = Label(window,text=str(gver),fg=_standardfg,bg=_standardbg,font=fonty2)
-graphite_ver.place(x=720,y=588,anchor='n')
 passed_label = Label(window,text='',fg=_standardfg,bg=_standardbg,font=fonty,cursor='hand2')
 passed_label.place(x=425,y=28,anchor='e')
 def song_time():
@@ -160,9 +225,8 @@ ttag = None
 
 
 def get_files_from_bar():
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path, app_path
-	gapp_path = Path.home() / 'graphite-app'
-	path = filedialog.askdirectory(initialdir=str(gapp_path))	
+	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h
+	path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
 	if path:
 		files = sorted([f for f in os.listdir(path) if f.lower().endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a', '.alac'))])
 		files_covert = sorted([f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))])
@@ -186,7 +250,7 @@ def get_files_from_bar():
 			covert_file = os.path.join(path, files_covert[0])
 			try:
 				coverty = Image.open(covert_file)
-				coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
+				coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 				coverty = ImageTk.PhotoImage(coverty)
 
 				coverty_label.config(image=coverty)
@@ -194,8 +258,8 @@ def get_files_from_bar():
 			except Exception as e:
 				pass
 		else:
-			coverty = Image.open(f'{app_path}/graph_logo2.png')
-			coverty = coverty.resize((100, 100), Image.Resampling.LANCZOS)
+			coverty = Image.open(f'{_logo2_directory}')
+			coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 			coverty = ImageTk.PhotoImage(coverty)
 
 			coverty_label.config(image=coverty)
@@ -214,7 +278,7 @@ dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
 
 def play_this_song():
-	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path
+	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, write_or_not
 
 	if selected_song:
 		pygame.mixer.music.load(selected_song)
@@ -222,8 +286,8 @@ def play_this_song():
 		pygame.mixer.music.play()
 		paused = False
 		playing = True
-		song_raw_name, file_extension = os.path.splitext(os.path.basename(selected_song))
-		song_name.config(text=song_raw_name)
+		song_raw_name, file_extension = os.path.splitext(str(os.path.basename(selected_song)))
+	
 		file_extension_label.config(text=file_extension.lstrip('.'))
 		try:
 			ttag = TinyTag.get(str(selected_song))
@@ -232,23 +296,21 @@ def play_this_song():
 		except Exception as e:
 			artist_name = None
 			artist_label.config(text='no artist')
-		write_to_file(song_path, song_raw_name, artist_name)
 
-
-
-
-
-
+		if write_or_not == 1:
+			write_to_file(song_path, song_raw_name, artist_name)
 def play_click(event=None):
-	global selected_song, paused, playing, play_inf, artist_name
+	global selected_song, paused, playing, play_inf, artist_name, write_or_not
 
 	if not selected_song:
 		song_name.config(text='No audio selected !')
-		write_to_file(song_path, 'idle')
+		if write_or_not == 1:
+			write_to_file(song_path, 'idle', artist_name)
 		return
 	else:
 		play_inf = 'playing'
-		write_to_file(song_path, song_raw_name, artist_name)
+		if write_or_not == 1:
+			write_to_file(song_path, song_raw_name, artist_name)
 		play_this_song()
 
 def play_button_(event=None):
@@ -413,21 +475,8 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 	song4_ext = os.path.splitext(os.path.basename(next_song_name4))
 	song5_ext = os.path.splitext(os.path.basename(next_song_name5))
 
-
-	if selected_song is not None:
-		song_basename = os.path.basename(selected_song)
-		if len(song_basename) > 75:
-			parts = len(song_basename) // 5
-			title = song_basename[:parts]
-			song_name.config(text=title + '..')
-		elif len(song_basename) > 59:
-			parts = len(song_basename) // 4
-			title = song_basename[:parts]
-			song_name.config(text=title + '..')
-		elif len(song_basename) > 39:
-			parts = len(song_basename) // 3
-			title = song_basename[:parts]
-			song_name.config(text=title + '..')
+	if selected_song != None:
+		song_name.config(text=song_raw_name)
 
 	if next_song_name1 is not None:
 		if len(song1_ext[0]) > 35:
@@ -476,30 +525,10 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 		play_button.config(text='play')
 
 	if artist_name != None:
+		artist_label.place_configure(x=48)
 		if len(artist_name) > 14:
-			artist_label.place_configure(x=48)
 			artist_label.config(text=artist_name[:len(artist_name) // 2] + '..')
-
-
-
 	playing_info.config(text=str(play_inf))
-	window.after(50, update_playing_info)
-def __updategputex():
-	global _gpuflip, _standardbg, _standardfg, _gpumode
-
-	if _gpuflip == "dark":
-		_standardbg = "white"
-		_standardfg = "black"
-		_gpuflip = "light"
-		_gpumode = "dark"
-		window.config(background=_standardbg)
-	else:
-		_standardbg = "black"
-		_standardfg = "white"
-		_gpuflip = "dark"
-		_gpumode = "light"
-		window.config(background=_standardbg)
-	update_label_colors(window)
+	window.after(100, update_playing_info)
 update_playing_info()
-window.bind('<Escape>', lambda event: __updategputex())
 window.mainloop()
