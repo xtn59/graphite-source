@@ -16,6 +16,7 @@ Needed Packages
   pathlib
   mutagen
 
-Download your  graphite version, run it once, navigate to either "/home/username/.config/graphite-app/" or graphite-app in localappdata on windows, download the logo's, put them inside the folder, now graphite will work.
-graphite_linux.py now prints song names to a file called .song.txt in your graphite-app folder. you can use it for practically anything, scripts, waybar modules, whatever you desire.
-graphite_windows.py is less priority for now, as i currently have no way of running that graphite version, but updates will come as i download windows on some hdd.
+Download your  graphite version, run it once, navigate to either "/home/username/.config/graphite-app/", download the logo's, put them inside the folder, now graphite will work.
+graphite_linux.py now prints song names to a file called song.txt in your graphite-app folder. you can use it for practically anything, scripts, waybar modules, whatever you desire.
+
+WINDOWS GRAPHITE VERSION IS NO LONGER AVAILABLE. I will focus on unix based systems for now.
