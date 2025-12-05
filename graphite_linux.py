@@ -5,16 +5,12 @@ from tkinter import filedialog
 from decimal import Decimal
 from mutagen import File
 from PIL import Image, ImageTk
-from mutagen import File
-from pynput import keyboard
-from pynput.keyboard import Key
-from pynput.keyboard import Listener
 from pathlib import Path
 import time, pygame, os
 
 
 artist_name = None
-def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be displayed as song, var to open .song.txt
+def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be displayed as song, var to open song.txt
 	if var3 != None:
 		with open(var, 'w') as song_file:
 			song_file.write(str(var3) + ' - ' + var2)
@@ -25,26 +21,11 @@ def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be
 pygame.init()
 pygame.mixer.init()
 
-app_path = Path.home() / '.config' / 'graphite-app'
-song_path = app_path / 'song.txt'
+home_path = Path.home()
+app_path = home_path / '.config' / 'graphite-app'
+song_path = home_path / 'song.txt'
 config_path = app_path / 'graphite.conf'
-_standardfg = None	#foreground color, will apply to every label that has tex
-_standardbg = None	#background color, will apply to every label that has a background
-fonty = None		#big font
-fonty2 = None		#small font
-start_geo = None	#starting geometry for the application, 480 pixels width, 640 pixels heigh
-w_w = None		#window width
-w_h = None		#window height
-coverty_w = None	#album cover width
-coverty_h = None
-coverty_x = None
-coverty_y = None
-developermode = 0
-write_or_not = None
-_music_user_directory = None
-_logo2_directory = None
-_logo3_directory = None
-
+req_path = app_path / 'requirements.txt'
 
 def overwrite_settings():
 	global app_path
@@ -68,7 +49,7 @@ def overwrite_settings():
 		cfg.write(f'13 logo3 directory:{app_path}/graph_logo3.png\n')
 		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
 		cfg.write('# Misc settings\n')
-		cfg.write('write to song.txt:0\n')
+		cfg.write('write to .song.txt:0\n')
 		cfg.write('# ^^^ Enable by turning it to 1\n')
 		cfg.write('developermode:0\n')
 		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
@@ -77,7 +58,7 @@ def overwrite_settings():
 		cfg.write('# You can delete these comments, but keep everything else. ESPECIALLY developer mode.\n')
 
 def app_dir_gph():
-	global app_path, song_path, config_path, _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, developermode, write_or_not, start_geo, _music_user_directory, _logo2_directory, _logo3_directory
+	global app_path, song_path, config_path, req_path
 
 	if not app_path.exists():
 		app_path.mkdir()
@@ -86,54 +67,66 @@ def app_dir_gph():
 	if not config_path.exists():
 		config_path.touch()
 		overwrite_settings()
-	
+	if not req_path.exists():
+		req_path.touch()
+		with open(req_path, 'w') as f:
+			f.write('pygame\n')
+			f.write('mutagen\n')
+			f.write('tinytag\n')
+			f.write('pillow\n')
+			f.write('pynput\n')	
+
 
 	with open(config_path, 'r') as cfg:
 		for line in cfg:
 			if ':' not in line:
 				continue
 			key, value = line.split(':', 1)
-			value = value.strip()
-			
-			if key.strip() == '1 foreground':
+			key = key.strip()
+			value = value.strip()			
+
+			if key == '1 foreground':
 				_standardfg = str(value)
-			elif key.strip() == '2 background':
+			elif key == '2 background':
 				_standardbg = str(value)
-			elif key.strip() == '3 big font':
+			elif key == '3 big font':
 				fonty = (str(value), 12)
-			elif key.strip() == '4 small font':
+			elif key == '4 small font':
 				fonty2 = (str(value), 9)
-			elif key.strip() == '5 window width':
+			elif key == '5 window width':
 				w_w = str(value)
-			elif key.strip() == '6 window height':
+			elif key == '6 window height':
 				w_h = str(value)
-			elif key.strip() == '7 album cover x':
+			elif key == '7 album cover x':
 				coverty_x = int(value)
-			elif key.strip() == '8 album cover y':
+			elif key == '8 album cover y':
 				coverty_y = int(value)
-			elif key.strip() == '9 album cover width':
+			elif key == '9 album cover width':
 				coverty_w = int(value)
-			elif key.strip() == '10 album cover height':
+			elif key == '10 album cover height':
 				coverty_h = int(value)
-			elif key.strip() == '11 directory to choose music from':
+			elif key == '11 directory to choose music from':
 				_music_user_directory = str(value)
-			elif key.strip() == '12 logo2 directory':
+			elif key == '12 logo2 directory':
 				_logo2_directory = str(value)
-			elif key.strip() == '13 logo3 directory':
+			elif key == '13 logo3 directory':
 				_logo3_directory = str(value)
-			elif key.strip() == 'write to .song.txt':
+			elif key == 'write to .song.txt':
 				write_or_not = int(value)
-			elif key.strip() == 'developermode':
+			elif key  == 'developermode':
 				developermode = int(value)
 	start_geo = f"{w_w}x{w_h}"
 	if developermode == 1:
 		overwrite_settings()
-app_dir_gph()
+	return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo
+
+_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo = app_dir_gph()
+
 idle = 'idle'
 if write_or_not == 1:
 	write_to_file(song_path, idle, artist_name)
 
-gver = 'graphite 0.1' #graphite version
+gver = 'graphite 0.2' #graphite version
 
 global_volume = Decimal('1.00')
 selected_song = None
@@ -142,10 +135,9 @@ playing = False
 hovering = False
 file_extension = ''	#.flac .mp3 and everything else
 song_raw_name = None	#previously 'test'
-song_list = []		#0 will be the first song, 1 the second, blah blah blah
-current_index = 0	#same here i think, all this works by miracle
+song_list = []		#0 will be the name of the first song, 1 the second, blah blah blah
+current_index = 0	#the current song number
 artist_name = None
-
 
 window = Tk()		#sets window
 window.geometry(str(start_geo))	#sets starting geometry
@@ -154,15 +146,16 @@ icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png fro
 window.iconphoto(True,icon)				#sets window logo to icon
 window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
 window.resizable(False,False)				#you cannot resize the window when this is uncommented.
-
 play_inf = 'idle'
 
+passed_label = Label(window,text='',fg=_standardfg,bg=_standardbg,font=fonty,cursor='hand2')
 song_name = Label(window, text='', font=fonty, fg=_standardfg, bg=_standardbg)
-song_name.place(x=5, y=28, anchor='w')
 file_extension_label = Label(window, text=str(file_extension), fg=_standardfg, font=fonty, bg=_standardbg)
-file_extension_label.place(x=475, y=28, anchor='e')
 coverty_label = Label(window,takefocus=0,bg=_standardbg)
+song_name.place(x=5, y=28, anchor='w')
+file_extension_label.place(x=475, y=28, anchor='e')
 coverty_label.place(x=coverty_x,y=coverty_y)
+passed_label.place(x=425,y=28,anchor='e')
 graph_logo = f'{_logo2_directory}'
 coverty = Image.open(graph_logo)
 coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
@@ -170,8 +163,6 @@ coverty = ImageTk.PhotoImage(coverty)
 coverty_label.config(image=coverty)
 coverty_label.image = coverty
 
-passed_label = Label(window,text='',fg=_standardfg,bg=_standardbg,font=fonty,cursor='hand2')
-passed_label.place(x=425,y=28,anchor='e')
 def song_time():
 	global selected_song, playing
 	if selected_song:
@@ -179,53 +170,43 @@ def song_time():
 
 		ntime = pygame.mixer.music.get_pos() / 1000
 		elapsed = time.strftime('%M:%S', time.gmtime(ntime))
-		nig = audio.info.length
-		naudio = time.strftime('%M:%S', time.gmtime(nig))
+		ail = audio.info.length
+		naudio = time.strftime('%M:%S', time.gmtime(ail))
 		to_print = (elapsed + '/' + naudio)
 		passed_label.config(text=to_print)
-	window.after(100,song_time)
+	window.after(80,song_time)
 song_time()
-#def rewind_forward():
-#	global playing
-#	if playing == True:
-#		pos = pygame.mixer.music.get_pos() / 1000
-#		seconds = 5000
-#		pygame.mixer.music.set_pos(pos + seconds)
-#passed_label.bind('<Button-4>',lambda event: rewind_forward())
-#^^^ This function was an experiment to try skipping a few seconds in a song. It WILL be added in the future. Not in this form though, this is shit.
-
 
 dir_label = Label(window,text='file',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-dir_label.place(x=48, y=218, anchor='n')
 play_button = Label(window,text='play/stop',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-play_button.place(x=432,y=218,anchor='n')
 vol_button = Label(window,text=str(global_volume),font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-vol_button.place(x=240,y=218,anchor='n')
 playing_info = Label(window,text=str(play_inf),font=fonty2,fg=_standardfg,bg=_standardbg)
+skip_left = Label(window,text=' <- ',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
+skip_right = Label(window,text=' -> ',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
+play_button.place(x=432,y=218,anchor='n')
+dir_label.place(x=48, y=218, anchor='n')
+vol_button.place(x=240,y=218,anchor='n')
 playing_info.place(x=240,y=242,anchor='n')
-skip_left = Label(window,text='<- skip',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
 skip_left.place(x=48,y=242,anchor='n')
-skip_right = Label(window,text='skip ->',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
 skip_right.place(x=432,y=242,anchor='n')
 
 next_song1 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song1.place(x=5,y=100,anchor='w')
 next_song2 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song2.place(x=5,y=120,anchor='w')
 next_song3 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song3.place(x=5,y=140,anchor='w')
 next_song4 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song4.place(x=5,y=160,anchor='w')
 next_song5 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
+next_song1.place(x=5,y=100,anchor='w')
+next_song2.place(x=5,y=120,anchor='w')
+next_song3.place(x=5,y=140,anchor='w')
+next_song4.place(x=5,y=160,anchor='w')
 next_song5.place(x=5,y=180,anchor='w')
 
 artist_label = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
 artist_label.place(x=48,y=39.5,anchor='n')
 ttag = None
 
-
 def get_files_from_bar():
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h
+	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h,_music_user_directory
 	path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
 	if path:
 		files = sorted([f for f in os.listdir(path) if f.lower().endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a', '.alac'))])
@@ -236,8 +217,6 @@ def get_files_from_bar():
 
 			selected_song = song_list[current_index]
 			song_raw_name, file_extension = os.path.splitext(os.path.basename(selected_song))
-			song_name.config(text=song_raw_name)
-			file_extension_label.config(text=file_extension.lstrip('.'))
 			pygame.mixer.music.stop()
 			hovering = False
 			paused = False
@@ -245,7 +224,7 @@ def get_files_from_bar():
 		else:
 			song_list = []
 			selected_song = None
-			song_name.config(text='graphite found no audio !')
+			song_name.config(text='no audio :^(')
 		if files_covert:
 			covert_file = os.path.join(path, files_covert[0])
 			try:
@@ -297,13 +276,14 @@ def play_this_song():
 			artist_name = None
 			artist_label.config(text='no artist')
 
-		if write_or_not == 1:
-			write_to_file(song_path, song_raw_name, artist_name)
+	if write_or_not == 1:
+		write_to_file(song_path, song_raw_name, artist_name)
+
 def play_click(event=None):
 	global selected_song, paused, playing, play_inf, artist_name, write_or_not
 
 	if not selected_song:
-		song_name.config(text='No audio selected !')
+		song_name.config(text='no audio selected :^(')
 		if write_or_not == 1:
 			write_to_file(song_path, 'idle', artist_name)
 		return
@@ -331,21 +311,10 @@ def play_button_(event=None):
 	else:
 		play_click()
 
-
-
 play_button.bind('<Button-1>',play_button_)
 play_button.bind('<Enter>',lambda event: play_button.config(fg='grey'))
 play_button.bind('<Leave>',lambda event: play_button.config(fg=_standardfg))
-
-
 window.bind('<space>', play_button_)
-
-
-def on_press(key):
-	if str(key) == 'Key.media_play_pause' or str(key) == 'XF86AudioPlay' or str(key) == 'XF64AudioPlay':
-		play_button_()
-
-
 
 def vol_click(event):
 	global global_volume,vol_button
@@ -372,7 +341,6 @@ def vol_scroll(event):
 
 vol_button.bind('<Button-4>', vol_click)
 vol_button.bind('<Button-5>', vol_dec)
-
 window.bind('<Up>', vol_click)
 window.bind('<Down>', vol_dec)
 
@@ -395,15 +363,10 @@ def skip_left_leave(event):
 	hovering = False
 	skip_left.config(fg=_standardfg)
 
-
-
 window.bind('<Left>', skip_left_click)
 skip_left.bind('<Button-1>', skip_left_click)
 skip_left.bind('<Enter>', skip_left_enter)
 skip_left.bind('<Leave>', skip_left_leave)
-
-
-
 
 def skip_right_click(event):
 	global global_volume,skip_right,current_index,selected_song
