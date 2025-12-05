@@ -49,7 +49,7 @@ def overwrite_settings():
 		cfg.write(f'13 logo3 directory:{app_path}/graph_logo3.png\n')
 		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
 		cfg.write('# Misc settings\n')
-		cfg.write('write to .song.txt:0\n')
+		cfg.write('write to song.txt:0\n')
 		cfg.write('# ^^^ Enable by turning it to 1\n')
 		cfg.write('developermode:0\n')
 		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
@@ -111,7 +111,7 @@ def app_dir_gph():
 				_logo2_directory = str(value)
 			elif key == '13 logo3 directory':
 				_logo3_directory = str(value)
-			elif key == 'write to .song.txt':
+			elif key == 'write to song.txt':
 				write_or_not = int(value)
 			elif key  == 'developermode':
 				developermode = int(value)
