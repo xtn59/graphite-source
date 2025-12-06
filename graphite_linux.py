@@ -49,7 +49,7 @@ def overwrite_settings():
 		cfg.write(f'13 logo3 directory:{app_path}/graph_logo3.png\n')
 		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
 		cfg.write('# Misc settings\n')
-		cfg.write('write to song.txt:0\n')
+		cfg.write('write to .song.txt:0\n')
 		cfg.write('# ^^^ Enable by turning it to 1\n')
 		cfg.write('developermode:0\n')
 		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
@@ -57,26 +57,7 @@ def overwrite_settings():
 		cfg.write('# ^^^ Please proceed with caution.\n')	
 		cfg.write('# You can delete these comments, but keep everything else. ESPECIALLY developer mode.\n')
 
-def app_dir_gph():
-	global app_path, song_path, config_path, req_path
-
-	if not app_path.exists():
-		app_path.mkdir()
-	if not song_path.exists():
-		song_path.touch()
-	if not config_path.exists():
-		config_path.touch()
-		overwrite_settings()
-	if not req_path.exists():
-		req_path.touch()
-		with open(req_path, 'w') as f:
-			f.write('pygame\n')
-			f.write('mutagen\n')
-			f.write('tinytag\n')
-			f.write('pillow\n')
-			f.write('pynput\n')	
-
-
+def read_settings():
 	with open(config_path, 'r') as cfg:
 		for line in cfg:
 			if ':' not in line:
@@ -111,7 +92,7 @@ def app_dir_gph():
 				_logo2_directory = str(value)
 			elif key == '13 logo3 directory':
 				_logo3_directory = str(value)
-			elif key == 'write to song.txt':
+			elif key == 'write to .song.txt':
 				write_or_not = int(value)
 			elif key  == 'developermode':
 				developermode = int(value)
@@ -120,7 +101,28 @@ def app_dir_gph():
 		overwrite_settings()
 	return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo
 
-_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo = app_dir_gph()
+
+def app_dir_gph():
+	global app_path, song_path, config_path, req_path
+
+	if not app_path.exists():
+		app_path.mkdir()
+	if not song_path.exists():
+		song_path.touch()
+	if not config_path.exists():
+		config_path.touch()
+		overwrite_settings()
+	if not req_path.exists():
+		req_path.touch()
+		with open(req_path, 'w') as f:
+			f.write('pygame\n')
+			f.write('mutagen\n')
+			f.write('tinytag\n')
+			f.write('pillow\n')
+			f.write('pynput\n')	
+
+	read_settings()
+_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo = read_settings()
 
 idle = 'idle'
 if write_or_not == 1:
@@ -439,43 +441,25 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 	song5_ext = os.path.splitext(os.path.basename(next_song_name5))
 
 	if selected_song != None:
-		song_name.config(text=song_raw_name)
+		song_len = len(song_raw_name)
+		if song_len < 30:
+			song_name.config(text=song_raw_name)
+		elif song_len > 30:
+			stuff = song_len // 2
+			hallf = str(song_raw_name[:stuff]) + '..'
+			song_name.config(text=hallf)
 
-	if next_song_name1 is not None:
-		if len(song1_ext[0]) > 35:
-			title = next_song_name1[:len(song1_ext[0]) // 3] + '..'
-			next_song1.config(text=title, anchor='w')
-		else:
-			next_song1.config(text=song1_ext[0], anchor='w')
-
-	if next_song_name2 is not None:
-		if len(song2_ext[0]) > 35:
-			title = next_song_name2[:len(song2_ext[0]) // 3] + '..'
-			next_song2.config(text=title, anchor='w')
-		else:
-			next_song2.config(text=song2_ext[0], anchor='w')
-
-	if next_song_name3 is not None:
-		if len(song3_ext[0]) > 35:
-			title = next_song_name3[:len(song3_ext[0]) // 3] + '..'
-			next_song3.config(text=title, anchor='w')			
-		else:
-			next_song3.config(text=song3_ext[0], anchor='w')
-
-	if next_song_name4 is not None:
-		if len(song4_ext[0]) > 35:
-			title = next_song_name4[:len(song4_ext[0]) // 3] + '..'
-			next_song4.config(text=title, anchor='w')
-		else:
-			next_song4.config(text=song4_ext[0], anchor='w')
+	names = [next_song_name1, next_song_name2, next_song_name3, next_song_name4, next_song_name5]
+	exts = [song1_ext, song2_ext, song3_ext, song4_ext, song5_ext]
+	widgets = [next_song1, next_song2, next_song3, next_song4, next_song5]
 	
-	if next_song_name5 is not None:
-		if len(song5_ext[0]) > 35:
-			title = next_song_name5[:len(song5_ext[0]) // 3] + '..'
-			next_song5.config(text=title, anchor='w')
-		else:
-			next_song5.config(text=song5_ext[0], anchor='w')
-
+	for name, ext, widget in zip(names, exts, widgets):
+		if name is not None:
+			if len(ext[0]) > 35:
+				title = name[:len(ext[0]) // 2] + '..'
+				widget.config(text=title, anchor='w')
+			else:
+				widget.config(text=ext[0], anchor='w')
 
 	if playing == True:
 		play_inf = 'playing'
@@ -492,6 +476,7 @@ def update_playing_info():	# This is absolute chaos, good luck reading this.
 		if len(artist_name) > 14:
 			artist_label.config(text=artist_name[:len(artist_name) // 2] + '..')
 	playing_info.config(text=str(play_inf))
+	
 	window.after(100, update_playing_info)
 update_playing_info()
 window.mainloop()
