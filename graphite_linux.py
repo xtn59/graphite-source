@@ -6,17 +6,14 @@ from decimal import Decimal
 from mutagen import File
 from PIL import Image, ImageTk
 from pathlib import Path
-import time, pygame, os
+import time, pygame, os, subprocess
 
 
 artist_name = None
 def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be displayed as song, var to open song.txt
 	if var3 != None:
 		with open(var, 'w') as song_file:
-			song_file.write(str(var3) + ' - ' + var2)
-	else:
-		with open(var, 'w') as song_file:
-			song_file.write(var2)
+			song_file.write(str(var3) + ' - ' + str(var2))
 
 pygame.init()
 pygame.mixer.init()
@@ -26,6 +23,7 @@ app_path = home_path / '.config' / 'graphite-app'
 song_path = home_path / 'song.txt'
 config_path = app_path / 'graphite.conf'
 req_path = app_path / 'requirements.txt'
+send_notifs = 0
 
 def overwrite_settings():
 	global app_path
@@ -50,7 +48,9 @@ def overwrite_settings():
 		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
 		cfg.write('# Misc settings\n')
 		cfg.write('write to .song.txt:0\n')
-		cfg.write('# ^^^ Enable by turning it to 1\n')
+		cfg.write('send notifs on song play:0\n')
+		cfg.write('# ^^^ Enable these by turning them to 1\n')
+		cfg.write('# ^^^ The notif will look like this: \"Never Gonna Give You Up - Rick Astley\"\n')
 		cfg.write('developermode:0\n')
 		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
 		cfg.write('# ^^^ Helpful if you messed something up and want to fix it. Back up your settings in another .txt file first.\n')
@@ -58,6 +58,7 @@ def overwrite_settings():
 		cfg.write('# You can delete these comments, but keep everything else. ESPECIALLY developer mode.\n')
 
 def read_settings():
+	global send_notifs
 	with open(config_path, 'r') as cfg:
 		for line in cfg:
 			if ':' not in line:
@@ -94,8 +95,11 @@ def read_settings():
 				_logo3_directory = str(value)
 			elif key == 'write to .song.txt':
 				write_or_not = int(value)
+			elif key == 'send notifs on song play':
+				send_notifs = int(value)
 			elif key  == 'developermode':
 				developermode = int(value)
+
 	start_geo = f"{w_w}x{w_h}"
 	if developermode == 1:
 		overwrite_settings()
@@ -126,7 +130,7 @@ _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty
 
 idle = 'idle'
 if write_or_not == 1:
-	write_to_file(song_path, idle, artist_name)
+	write_to_file(song_path, idle)
 
 gver = 'graphite 0.2' #graphite version
 
@@ -135,15 +139,15 @@ selected_song = None
 paused = False
 playing = False
 hovering = False
-file_extension = ''	#.flac .mp3 and everything else
-song_raw_name = None	#previously 'test'
-song_list = []		#0 will be the name of the first song, 1 the second, blah blah blah
-current_index = 0	#the current song number
+file_extension = ''					#.flac .mp3 and everything else
+song_raw_name = None					#previously 'test'
+song_list = []						#0 will be the name of the first song, 1 the second, blah blah blah
+current_index = 0					#the current song number
 artist_name = None
 
-window = Tk()		#sets window
-window.geometry(str(start_geo))	#sets starting geometry
-window.title('graphite')	#sets window title to graphite	
+window = Tk()						#sets window
+window.geometry(str(start_geo))				#sets starting geometry
+window.title('graphite')				#sets window title to graphite	
 icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. *NOW you can put your image here.	
 window.iconphoto(True,icon)				#sets window logo to icon
 window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
@@ -164,6 +168,7 @@ coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 coverty = ImageTk.PhotoImage(coverty)
 coverty_label.config(image=coverty)
 coverty_label.image = coverty
+coverty_path = None
 
 def song_time():
 	global selected_song, playing
@@ -208,7 +213,7 @@ artist_label.place(x=48,y=39.5,anchor='n')
 ttag = None
 
 def get_files_from_bar():
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h,_music_user_directory
+	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h,_music_user_directory,coverty_path,send_notifs
 	path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
 	if path:
 		files = sorted([f for f in os.listdir(path) if f.lower().endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a', '.alac'))])
@@ -229,6 +234,7 @@ def get_files_from_bar():
 			song_name.config(text='no audio :^(')
 		if files_covert:
 			covert_file = os.path.join(path, files_covert[0])
+			coverty_path = str(covert_file)
 			try:
 				coverty = Image.open(covert_file)
 				coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
@@ -239,6 +245,7 @@ def get_files_from_bar():
 			except Exception as e:
 				pass
 		else:
+			coverty_path = f'{_logo2_directory}'
 			coverty = Image.open(f'{_logo2_directory}')
 			coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 			coverty = ImageTk.PhotoImage(coverty)
@@ -252,14 +259,8 @@ window.bind('<Tab>', lambda event: get_files_from_bar())
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
-
-
-
-
-
-
 def play_this_song():
-	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, write_or_not
+	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, write_or_not, send_notifs, coverty_path
 
 	if selected_song:
 		pygame.mixer.music.load(selected_song)
@@ -280,6 +281,8 @@ def play_this_song():
 
 	if write_or_not == 1:
 		write_to_file(song_path, song_raw_name, artist_name)
+	if send_notifs == 1:
+		subprocess.run(["notify-send", f"{song_raw_name} - {artist_name}", "-i", coverty_path], shell=False)
 
 def play_click(event=None):
 	global selected_song, paused, playing, play_inf, artist_name, write_or_not
@@ -306,7 +309,7 @@ def play_button_(event=None):
 		playing = True
 	elif playing:
 		play_inf = 'paused'
-		write_to_file(song_path, 'paused', artist_name)
+		write_to_file(song_path, play_inf)
 		pygame.mixer.music.pause()
 		paused = True
 		playing = False
@@ -332,6 +335,7 @@ def vol_dec(event):
 
 	if global_volume > Decimal('0.00'):
 		global_volume -= Decimal('0.05')
+
 		pygame.mixer.music.set_volume(float(global_volume))
 		vol_button.config(text=str(global_volume))
 
@@ -372,7 +376,7 @@ skip_left.bind('<Leave>', skip_left_leave)
 
 def skip_right_click(event):
 	global global_volume,skip_right,current_index,selected_song
-
+	#shh you don't know about this comment
 	if current_index + 1 < len(song_list):
 		current_index += 1
 		selected_song = song_list[current_index]
@@ -393,7 +397,7 @@ skip_right.bind('<Button-1>',skip_right_click)
 skip_right.bind('<Enter>', skip_right_enter)
 skip_right.bind('<Leave>', skip_right_leave)
 
-def update_playing_info():	# This is absolute chaos, good luck reading this.
+def update_playing_info():	# This is a bit better now.
 	global playing, paused, selected_song, current_index, song_list, hovering, play_inf, next_song1, next_song2, next_song3, next_song4, next_song5, playing_info, artist_name
 
 	if playing:
