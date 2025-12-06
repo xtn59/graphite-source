@@ -130,7 +130,7 @@ _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty
 
 idle = 'idle'
 if write_or_not == 1:
-	write_to_file(song_path, idle)
+	write_to_file(song_path, idle, '')
 
 gver = 'graphite 0.2' #graphite version
 
