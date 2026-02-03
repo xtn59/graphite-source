@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from tkinter import *
 from tinytag import TinyTag
 import tkinter as tk
@@ -8,54 +10,13 @@ from PIL import Image, ImageTk
 from pathlib import Path
 import time, pygame, os, subprocess
 
-
-artist_name = None
-def write_to_file(var, var2, var3): #var3 to be displayed as artist, var 2 to be displayed as song, var to open song.txt
-	if var3 != None:
-		with open(var, 'w') as song_file:
-			song_file.write(str(var3) + ' - ' + str(var2))
-
 pygame.init()
 pygame.mixer.init()
 
 home_path = Path.home()
-app_path = home_path / '.config' / 'graphite-app'
-song_path = home_path / 'song.txt'
+app_path = home_path / '.config' / 'graphite'
 config_path = app_path / 'graphite.conf'
-req_path = app_path / 'requirements.txt'
 send_notifs = 0
-
-def overwrite_settings():
-	global app_path
-	with open(config_path, 'w') as cfg:
-		cfg.write('# Main settings\n')
-		cfg.write('1 foreground:white\n')
-		cfg.write('2 background:black\n')
-		cfg.write('3 big font:DejaVu Sans\n')
-		cfg.write('4 small font:DejaVu Sans\n')
-		cfg.write('5 window width:480\n')
-		cfg.write('6 window height:276\n')
-		cfg.write('\n')	
-		cfg.write('# Image settings\n')
-		cfg.write('7 album cover x:350\n')
-		cfg.write('8 album cover y:90\n')
-		cfg.write('9 album cover width:100\n')
-		cfg.write('10 album cover height:100\n')
-		cfg.write('# Directory and file settings\n')
-		cfg.write(f'11 directory to choose music from:{app_path}/\n')
-		cfg.write(f'12 logo2 directory:{app_path}/graph_logo2.png\n')
-		cfg.write(f'13 logo3 directory:{app_path}/graph_logo3.png\n')
-		cfg.write('# ^^^ You can set your own logo\'s. Keep a reasonable size though.\n')
-		cfg.write('# Misc settings\n')
-		cfg.write('write to .song.txt:0\n')
-		cfg.write('send notifs on song play:0\n')
-		cfg.write('# ^^^ Enable these by turning them to 1\n')
-		cfg.write('# ^^^ The notif will look like this: \"Never Gonna Give You Up - Rick Astley\"\n')
-		cfg.write('developermode:0\n')
-		cfg.write('# ^^^ TURNING THIS TO ANYTHING ELSE THAN 0 WILL RETURN GRAPHITE.CONF TO IT\'S ORIGINAL STATE.\n')
-		cfg.write('# ^^^ Helpful if you messed something up and want to fix it. Back up your settings in another .txt file first.\n')
-		cfg.write('# ^^^ Please proceed with caution.\n')	
-		cfg.write('# You can delete these comments, but keep everything else. ESPECIALLY developer mode.\n')
 
 def read_settings():
 	global send_notifs
@@ -67,34 +28,32 @@ def read_settings():
 			key = key.strip()
 			value = value.strip()			
 
-			if key == '1 foreground':
+			if key == 'foreground':
 				_standardfg = str(value)
-			elif key == '2 background':
+			elif key == 'background':
 				_standardbg = str(value)
-			elif key == '3 big font':
+			elif key == 'big font':
 				fonty = (str(value), 12)
-			elif key == '4 small font':
+			elif key == 'small font':
 				fonty2 = (str(value), 9)
-			elif key == '5 window width':
+			elif key == 'window width':
 				w_w = str(value)
-			elif key == '6 window height':
+			elif key == 'window height':
 				w_h = str(value)
-			elif key == '7 album cover x':
+			elif key == 'album cover x':
 				coverty_x = int(value)
-			elif key == '8 album cover y':
+			elif key == 'album cover y':
 				coverty_y = int(value)
-			elif key == '9 album cover width':
+			elif key == 'album cover width':
 				coverty_w = int(value)
-			elif key == '10 album cover height':
+			elif key == 'album cover height':
 				coverty_h = int(value)
-			elif key == '11 directory to choose music from':
+			elif key == 'directory to choose music from':
 				_music_user_directory = str(value)
-			elif key == '12 logo2 directory':
-				_logo2_directory = str(value)
-			elif key == '13 logo3 directory':
-				_logo3_directory = str(value)
-			elif key == 'write to .song.txt':
-				write_or_not = int(value)
+			elif key == 'logo2 directory':
+				_logo2_directory = value
+			elif key == 'logo3 directory':
+				_logo3_directory = value
 			elif key == 'send notifs on song play':
 				send_notifs = int(value)
 			elif key  == 'developermode':
@@ -103,36 +62,10 @@ def read_settings():
 	start_geo = f"{w_w}x{w_h}"
 	if developermode == 1:
 		overwrite_settings()
-	return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo
+	return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo
+_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo = read_settings()
 
-
-def app_dir_gph():
-	global app_path, song_path, config_path, req_path
-
-	if not app_path.exists():
-		app_path.mkdir()
-	if not song_path.exists():
-		song_path.touch()
-	if not config_path.exists():
-		config_path.touch()
-		overwrite_settings()
-	if not req_path.exists():
-		req_path.touch()
-		with open(req_path, 'w') as f:
-			f.write('pygame\n')
-			f.write('mutagen\n')
-			f.write('tinytag\n')
-			f.write('pillow\n')
-			f.write('pynput\n')	
-
-	read_settings()
-_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, write_or_not, developermode, start_geo = read_settings()
-
-idle = 'idle'
-if write_or_not == 1:
-	write_to_file(song_path, idle, '')
-
-gver = 'graphite 0.2' #graphite version
+gver = 'graphite 0.3' # graphite version
 
 global_volume = Decimal('1.00')
 selected_song = None
@@ -148,7 +81,7 @@ artist_name = None
 window = Tk()						#sets window
 window.geometry(str(start_geo))				#sets starting geometry
 window.title('graphite')				#sets window title to graphite	
-icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. *NOW you can put your image here.	
+icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.	
 window.iconphoto(True,icon)				#sets window logo to icon
 window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
 window.resizable(False,False)				#you cannot resize the window when this is uncommented.
@@ -260,7 +193,7 @@ dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
 def play_this_song():
-	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, write_or_not, send_notifs, coverty_path
+	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, send_notifs, coverty_path
 
 	if selected_song:
 		pygame.mixer.music.load(selected_song)
@@ -279,37 +212,29 @@ def play_this_song():
 			artist_name = None
 			artist_label.config(text='no artist')
 
-	if write_or_not == 1:
-		write_to_file(song_path, song_raw_name, artist_name)
 	if send_notifs == 1:
 		subprocess.run(["notify-send", f"{song_raw_name} - {artist_name}", "-i", coverty_path], shell=False)
 
 def play_click(event=None):
-	global selected_song, paused, playing, play_inf, artist_name, write_or_not
+	global selected_song, paused, playing, play_inf, artist_name
 
 	if not selected_song:
 		song_name.config(text='no audio selected :^(')
-		if write_or_not == 1:
-			write_to_file(song_path, 'idle', artist_name)
 		return
 	else:
 		play_inf = 'playing'
-		if write_or_not == 1:
-			write_to_file(song_path, song_raw_name, artist_name)
 		play_this_song()
 
 def play_button_(event=None):
 	global play_inf,song_name,paused,playing,artist_name
 	if paused:
 		play_inf = 'playing'
-		write_to_file(song_path, song_raw_name, artist_name)
 		pygame.mixer.music.unpause()
 		play_button.config(fg=_standardfg)
 		paused = False
 		playing = True
 	elif playing:
 		play_inf = 'paused'
-		write_to_file(song_path, play_inf)
 		pygame.mixer.music.pause()
 		paused = True
 		playing = False
@@ -376,7 +301,6 @@ skip_left.bind('<Leave>', skip_left_leave)
 
 def skip_right_click(event):
 	global global_volume,skip_right,current_index,selected_song
-	#shh you don't know about this comment
 	if current_index + 1 < len(song_list):
 		current_index += 1
 		selected_song = song_list[current_index]
