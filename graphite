@@ -62,7 +62,7 @@ def read_settings():
 	start_geo = f"{w_w}x{w_h}"
 	if developermode == 1:
 		overwrite_settings()
-	return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo
+        return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo
 _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo = read_settings()
 
 gver = 'graphite 0.3' # graphite version
