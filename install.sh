@@ -16,29 +16,22 @@ echo "making directories and copying files..."
 mkdir -p ~/.config/graphite
 touch ~/.config/graphite/graphite.conf
 cp -r *.png ~/.config/graphite/
+echo "you may be prompted with sudo. it only copies files, don't worry."
 sudo cp -r graphite /bin/
+sudo cp -r 6x13.otb $HOME/.local/share/fonts/
 
 echo "
 
 foreground:black
 background:white
-big font: DejaVu sans
-small font: DejaVu Sans
-window width:480
-window height:276
-
-album cover x:350
-album cover y:90
-album cover width:100
-album cover height:100
+font:Misc Fixed
 
 # Path.home() is a function in python
 directory to choose music from:f'{Path.home()}'
-logo2 directory:/home/bdr/.config/graphite/logo2.png
-logo3 directory:/home/bdr/.config/graphite/logo3.png
+logo2 directory:$HOME/.config/graphite/logo2.png
+logo3 directory:$HOME/.config/graphite/logo3.png
 
 send notifs on song play:0
-developermode:0
 
 " > ~/.config/graphite/graphite.conf
 

@@ -32,22 +32,8 @@ def read_settings():
 				_standardfg = str(value)
 			elif key == 'background':
 				_standardbg = str(value)
-			elif key == 'big font':
-				fonty = (str(value), 12)
-			elif key == 'small font':
-				fonty2 = (str(value), 9)
-			elif key == 'window width':
-				w_w = str(value)
-			elif key == 'window height':
-				w_h = str(value)
-			elif key == 'album cover x':
-				coverty_x = int(value)
-			elif key == 'album cover y':
-				coverty_y = int(value)
-			elif key == 'album cover width':
-				coverty_w = int(value)
-			elif key == 'album cover height':
-				coverty_h = int(value)
+			elif key == 'font':
+				fonty2 = (str(value), 10)
 			elif key == 'directory to choose music from':
 				_music_user_directory = str(value)
 			elif key == 'logo2 directory':
@@ -56,26 +42,21 @@ def read_settings():
 				_logo3_directory = value
 			elif key == 'send notifs on song play':
 				send_notifs = int(value)
-			elif key  == 'developermode':
-				developermode = int(value)
 
-	start_geo = f"{w_w}x{w_h}"
-	if developermode == 1:
-		overwrite_settings()
-        return _standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo
-_standardfg, _standardbg, fonty, fonty2, w_w, w_h, coverty_x, coverty_y, coverty_w, coverty_h, _music_user_directory, _logo2_directory, _logo3_directory, developermode, start_geo = read_settings()
+	start_geo = "230x230"
+	return _standardfg, _standardbg, fonty2, _music_user_directory, _logo2_directory, _logo3_directory, start_geo
+_standardfg, _standardbg, fonty2, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
 
-gver = 'graphite 0.3' # graphite version
+gver = 'graphite [1.0]' # graphite version
 
 global_volume = Decimal('1.00')
 selected_song = None
 paused = False
 playing = False
 hovering = False
-file_extension = ''					#.flac .mp3 and everything else
-song_raw_name = None					#previously 'test'
-song_list = []						#0 will be the name of the first song, 1 the second, blah blah blah
-current_index = 0					#the current song number
+song_raw_name = None
+song_list = []						#song_list[0] will be the name of the first song, [1] the second, blah blah blah
+current_index = 0					#the current song number, will use it for this ^^^
 artist_name = None
 
 window = Tk()						#sets window
@@ -85,17 +66,16 @@ icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png fro
 window.iconphoto(True,icon)				#sets window logo to icon
 window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
 window.resizable(False,False)				#you cannot resize the window when this is uncommented.
-play_inf = 'idle'
+hidden = 1
 
-passed_label = Label(window,text='',fg=_standardfg,bg=_standardbg,font=fonty,cursor='hand2')
-song_name = Label(window, text='', font=fonty, fg=_standardfg, bg=_standardbg)
-file_extension_label = Label(window, text=str(file_extension), fg=_standardfg, font=fonty, bg=_standardbg)
-coverty_label = Label(window,takefocus=0,bg=_standardbg)
-song_name.place(x=5, y=28, anchor='w')
-file_extension_label.place(x=475, y=28, anchor='e')
-coverty_label.place(x=coverty_x,y=coverty_y)
-passed_label.place(x=425,y=28,anchor='e')
 graph_logo = f'{_logo2_directory}'
+coverty_w = 160  #150
+coverty_x = 35 #37.5
+coverty_h = 160  #150
+coverty_y = 35   #50
+coverty_label = Label(window,takefocus=0,bg=_standardbg)
+coverty_label.place(x=coverty_x,y=coverty_y)
+# load logo
 coverty = Image.open(graph_logo)
 coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
 coverty = ImageTk.PhotoImage(coverty)
@@ -117,39 +97,36 @@ def song_time():
 	window.after(80,song_time)
 song_time()
 
-dir_label = Label(window,text='file',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-play_button = Label(window,text='play/stop',font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-vol_button = Label(window,text=str(global_volume),font=fonty,fg=_standardfg,cursor='hand2',bg=_standardbg)
-playing_info = Label(window,text=str(play_inf),font=fonty2,fg=_standardfg,bg=_standardbg)
-skip_left = Label(window,text=' <- ',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-skip_right = Label(window,text=' -> ',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-play_button.place(x=432,y=218,anchor='n')
-dir_label.place(x=48, y=218, anchor='n')
-vol_button.place(x=240,y=218,anchor='n')
-playing_info.place(x=240,y=242,anchor='n')
-skip_left.place(x=48,y=242,anchor='n')
-skip_right.place(x=432,y=242,anchor='n')
+dir_label = Label(window,text='file',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
+play_button = Label(window,text='play/stop',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
+vol_button = Label(window,text=str(global_volume),font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
+passed_label = Label(window,text='00:00/00:00',fg=_standardfg,bg=_standardbg,font=fonty2,cursor='hand2')	#text was previously ''
+artist_label = Label(window,text='graphite',fg=_standardfg,bg=_standardbg,font=fonty2)
+song_name = Label(window,fg=_standardfg,bg=_standardbg,text='',font=fonty2)
 
-next_song1 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song2 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song3 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song4 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song5 = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-next_song1.place(x=5,y=100,anchor='w')
-next_song2.place(x=5,y=120,anchor='w')
-next_song3.place(x=5,y=140,anchor='w')
-next_song4.place(x=5,y=160,anchor='w')
-next_song5.place(x=5,y=180,anchor='w')
+#llll = Label(window,text='|',font=fonty2)
+#llll.place(x=240,y=250)
 
-artist_label = Label(window,text='',font=fonty2,fg=_standardfg,bg=_standardbg)
-artist_label.place(x=48,y=39.5,anchor='n')
+dir_label.place(x=0,y=215)
+play_button.place(x=35,y=215)
+vol_button.place(x=105,y=215)
+passed_label.place(x=230,y=224,anchor='e')
+
+song_name.place(x=0,y=0)
+artist_label.place(x=0,y=13)
+
 ttag = None
 
-def get_files_from_bar():
+def get_files(button):
 	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h,_music_user_directory,coverty_path,send_notifs
-	path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
+
+	if button == 1:
+		path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
+	else:
+		path = os.getcwd()
+
 	if path:
-		files = sorted([f for f in os.listdir(path) if f.lower().endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a', '.alac'))])
+		files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
 		files_covert = sorted([f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))])
 		if files:
 			song_list = [os.path.join(path, f) for f in files]
@@ -187,13 +164,13 @@ def get_files_from_bar():
 			coverty_label.image = coverty
 	update_playing_info()
 
-dir_label.bind('<Button-1>', lambda event: get_files_from_bar())
-window.bind('<Tab>', lambda event: get_files_from_bar())
+dir_label.bind('<Button-1>', lambda event: get_files(1))
+window.bind('<Tab>', lambda event: get_files(1))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
 
 def play_this_song():
-	global selected_song, paused, playing, current_index, file_extension, song_raw_name, song_path, send_notifs, coverty_path
+	global paused, playing, current_index, file_extension, song_raw_name, song_path, send_notifs, coverty_path
 
 	if selected_song:
 		pygame.mixer.music.load(selected_song)
@@ -202,15 +179,18 @@ def play_this_song():
 		paused = False
 		playing = True
 		song_raw_name, file_extension = os.path.splitext(str(os.path.basename(selected_song)))
-	
-		file_extension_label.config(text=file_extension.lstrip('.'))
-		try:
-			ttag = TinyTag.get(str(selected_song))
-			artist_name = ttag.artist
-			artist_label.config(text=artist_name)
-		except Exception as e:
-			artist_name = None
-			artist_label.config(text='no artist')
+#		try:
+
+		ttag = TinyTag.get(str(selected_song))
+		artist_name = ttag.artist
+		print(artist_name)
+		print(song_raw_name)
+		artist_label.config(text=str(artist_name.lower()))
+		song_name.config(text=str(song_raw_name.lower()))
+
+#		except Exception as e:
+#			artist_name = None
+#			artist_label.config(text='no artist')
 
 	if send_notifs == 1:
 		subprocess.run(["notify-send", f"{song_raw_name} - {artist_name}", "-i", coverty_path], shell=False)
@@ -241,11 +221,6 @@ def play_button_(event=None):
 	else:
 		play_click()
 
-play_button.bind('<Button-1>',play_button_)
-play_button.bind('<Enter>',lambda event: play_button.config(fg='grey'))
-play_button.bind('<Leave>',lambda event: play_button.config(fg=_standardfg))
-window.bind('<space>', play_button_)
-
 def vol_click(event):
 	global global_volume,vol_button
 
@@ -270,14 +245,6 @@ def vol_scroll(event):
 	else:
 		vol_dec(event)
 
-vol_button.bind('<Button-4>', vol_click)
-vol_button.bind('<Button-5>', vol_dec)
-window.bind('<Up>', vol_click)
-window.bind('<Down>', vol_dec)
-
-vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
-vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_standardfg))
-
 def skip_left_click(event):
 	global global_volume,skip_left,current_index,selected_song
 	if current_index - 1 >= 0:
@@ -293,11 +260,6 @@ def skip_left_leave(event):
 	global hovering
 	hovering = False
 	skip_left.config(fg=_standardfg)
-
-window.bind('<Left>', skip_left_click)
-skip_left.bind('<Button-1>', skip_left_click)
-skip_left.bind('<Enter>', skip_left_enter)
-skip_left.bind('<Leave>', skip_left_leave)
 
 def skip_right_click(event):
 	global global_volume,skip_right,current_index,selected_song
@@ -315,13 +277,7 @@ def skip_right_leave(event):
 	hovering = False
 	skip_right.config(fg=_standardfg)
 
-
-window.bind('<Right>', skip_right_click)
-skip_right.bind('<Button-1>',skip_right_click)
-skip_right.bind('<Enter>', skip_right_enter)
-skip_right.bind('<Leave>', skip_right_leave)
-
-def update_playing_info():	# This is a bit better now.
+def update_playing_info():
 	global playing, paused, selected_song, current_index, song_list, hovering, play_inf, next_song1, next_song2, next_song3, next_song4, next_song5, playing_info, artist_name
 
 	if playing:
@@ -336,58 +292,6 @@ def update_playing_info():	# This is a bit better now.
 				playing = False
 				paused = False
 				play_inf = 'idle'
-	if current_index + 1 < len(song_list):
-		next_song_path1 = song_list[current_index + 1]
-		next_song_path2 = song_list[current_index + 2] if current_index + 2 < len(song_list) else None
-		next_song_path3 = song_list[current_index + 3] if current_index + 3 < len(song_list) else None
-		next_song_path4 = song_list[current_index + 4] if current_index + 4 < len(song_list) else None
-		next_song_path5 = song_list[current_index + 5] if current_index + 5 < len(song_list) else None
-
-		next_song_name1 = os.path.basename(next_song_path1)
-		next_song_name2 = os.path.basename(next_song_path2) if next_song_path2 else '     -     '
-		next_song_name3 = os.path.basename(next_song_path3) if next_song_path3 else '     -     '
-		next_song_name4 = os.path.basename(next_song_path4) if next_song_path4 else '     -     '
-		next_song_name5 = os.path.basename(next_song_path5) if next_song_path5 else '     -     '
-	else:
-		next_song_name1 = '     -     '
-		next_song_name2 = '     -     '
-		next_song_name3 = '     -     '
-		next_song_name4 = '     -     '
-		next_song_name5 = '     -     '
-
-	next_song1.config(text=next_song_name1, anchor='w')
-	next_song2.config(text=next_song_name2, anchor='w')
-	next_song3.config(text=next_song_name3, anchor='w')
-	next_song4.config(text=next_song_name4, anchor='w')
-	next_song5.config(text=next_song_name5, anchor='w')
-
-	
-	song1_ext = os.path.splitext(os.path.basename(next_song_name1))
-	song2_ext = os.path.splitext(os.path.basename(next_song_name2))
-	song3_ext = os.path.splitext(os.path.basename(next_song_name3))
-	song4_ext = os.path.splitext(os.path.basename(next_song_name4))
-	song5_ext = os.path.splitext(os.path.basename(next_song_name5))
-
-	if selected_song != None:
-		song_len = len(song_raw_name)
-		if song_len < 30:
-			song_name.config(text=song_raw_name)
-		elif song_len > 30:
-			stuff = song_len // 2
-			hallf = str(song_raw_name[:stuff]) + '..'
-			song_name.config(text=hallf)
-
-	names = [next_song_name1, next_song_name2, next_song_name3, next_song_name4, next_song_name5]
-	exts = [song1_ext, song2_ext, song3_ext, song4_ext, song5_ext]
-	widgets = [next_song1, next_song2, next_song3, next_song4, next_song5]
-	
-	for name, ext, widget in zip(names, exts, widgets):
-		if name is not None:
-			if len(ext[0]) > 35:
-				title = name[:len(ext[0]) // 2] + '..'
-				widget.config(text=title, anchor='w')
-			else:
-				widget.config(text=ext[0], anchor='w')
 
 	if playing == True:
 		play_inf = 'playing'
@@ -399,12 +303,44 @@ def update_playing_info():	# This is a bit better now.
 		play_inf = 'idle'
 		play_button.config(text='play')
 
-	if artist_name != None:
-		artist_label.place_configure(x=48)
-		if len(artist_name) > 14:
-			artist_label.config(text=artist_name[:len(artist_name) // 2] + '..')
-	playing_info.config(text=str(play_inf))
-	
 	window.after(100, update_playing_info)
+
+def hide_ui():
+	global hidden
+
+	if hidden == 1:
+		song_name.place(y=0)
+		artist_label.place(y=13)
+		hidden = 2
+	elif hidden == 2:
+		song_name.place(y=0)
+		artist_label.place(y=1000)
+		hidden = 3
+	elif hidden == 3:
+		song_name.place(y=1000)
+		artist_label.place(y=0)
+		hidden = 4
+	elif hidden == 4:
+		song_name.place(y=1000)
+		artist_label.place(y=1000)
+		hidden = 1
+
+play_button.bind('<Button-1>',play_button_)
+play_button.bind('<Enter>',lambda event: play_button.config(fg='grey'))
+play_button.bind('<Leave>',lambda event: play_button.config(fg=_standardfg))
+window.bind('<space>', play_button_)
+vol_button.bind('<Button-4>', vol_click)
+vol_button.bind('<Button-5>', vol_dec)
+window.bind('<Up>', vol_click)
+window.bind('<Down>', vol_dec)
+window.bind('<Right>', skip_right_click)
+window.bind('<Left>', skip_left_click)
+vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
+vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_standardfg))
+passed_label.bind('<Enter>', lambda event: passed_label.config(fg='grey'))
+passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_standardfg))
+window.bind('<KeyPress-g>', lambda event: hide_ui())
+
+get_files(0)
 update_playing_info()
 window.mainloop()
