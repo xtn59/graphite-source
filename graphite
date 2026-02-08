@@ -8,7 +8,9 @@ from decimal import Decimal
 from mutagen import File
 from PIL import Image, ImageTk
 from pathlib import Path
-import time, pygame, os, subprocess
+import time, pygame, os, subprocess, sys
+
+subprocess.run('clear')
 
 pygame.init()
 pygame.mixer.init()
@@ -16,8 +18,15 @@ pygame.mixer.init()
 home_path = Path.home()
 app_path = home_path / '.config' / 'graphite'
 config_path = app_path / 'graphite.conf'
-send_notifs = 0
+try:
+	_arg1 = str(sys.argv[1])
+	if type(_arg1) == str:
+		
+except Exception as IndexError:
+	print("please specify which directory to use.")
+	print("graphite [directory]")
 
+send_notifs = 0
 def read_settings():
 	global send_notifs
 	with open(config_path, 'r') as cfg:
@@ -29,11 +38,11 @@ def read_settings():
 			value = value.strip()			
 
 			if key == 'foreground':
-				_standardfg = str(value)
+				_fg = str(value)
 			elif key == 'background':
-				_standardbg = str(value)
+				_bg = str(value)
 			elif key == 'font':
-				fonty2 = (str(value), 10)
+				_fnt = (str(value), 10)
 			elif key == 'directory to choose music from':
 				_music_user_directory = str(value)
 			elif key == 'logo2 directory':
@@ -44,49 +53,51 @@ def read_settings():
 				send_notifs = int(value)
 
 	start_geo = "230x230"
-	return _standardfg, _standardbg, fonty2, _music_user_directory, _logo2_directory, _logo3_directory, start_geo
-_standardfg, _standardbg, fonty2, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
+	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo
+
+_fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
 
 gver = 'graphite [1.0]' # graphite version
 
-global_volume = Decimal('1.00')
-selected_song = None
-paused = False
-playing = False
-hovering = False
-song_raw_name = None
-song_list = []						#song_list[0] will be the name of the first song, [1] the second, blah blah blah
-current_index = 0					#the current song number, will use it for this ^^^
-artist_name = None
+_glb_vol = Decimal('1.00')
+_sel_sng = None
+_pus = False
+_ply = False
+_hvr = False
+_sng_raw_nme = None
+_sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the second, blah blah blah
+_cur_inx = 0						#the current song number, will use it for this ^^^
+_art_nme = None
+_repeat = False
+hidden = 2
 
-window = Tk()						#sets window
-window.geometry(str(start_geo))				#sets starting geometry
-window.title('graphite')				#sets window title to graphite	
+_dos = Tk()						#sets window
+_dos.geometry(str(start_geo))				#sets starting geometry
+_dos.title('graphite')					#sets window title to graphite	
 icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.	
-window.iconphoto(True,icon)				#sets window logo to icon
-window.config(background=_standardbg)			#sets window background to standard background, at the start it is 'white'
-window.resizable(False,False)				#you cannot resize the window when this is uncommented.
-hidden = 1
+_dos.iconphoto(True,icon)				#sets window logo to icon
+_dos.config(background=_bg)				#sets window background to standard background, at the start it is 'white'
+_dos.resizable(False,False)				#you cannot resize the _dos when this is uncommented.
 
 graph_logo = f'{_logo2_directory}'
-coverty_w = 160  #150
-coverty_x = 35 #37.5
-coverty_h = 160  #150
-coverty_y = 35   #50
-coverty_label = Label(window,takefocus=0,bg=_standardbg)
-coverty_label.place(x=coverty_x,y=coverty_y)
+cover_w = 160  #150
+cover_x = 35 #37.5
+cover_h = 160  #150
+cover_y = 35   #50
+cover_label = Label(_dos,takefocus=0,bg=_bg)
+cover_label.place(x=cover_x,y=cover_y)
 # load logo
-coverty = Image.open(graph_logo)
-coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
-coverty = ImageTk.PhotoImage(coverty)
-coverty_label.config(image=coverty)
-coverty_label.image = coverty
-coverty_path = None
+cover = Image.open(graph_logo)
+cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+cover = ImageTk.PhotoImage(cover)
+cover_label.config(image=cover)
+cover_label.image = cover
+cover_path = None
 
 def song_time():
-	global selected_song, playing
-	if selected_song:
-		audio = File(selected_song)
+	global _sel_sng, _ply
+	if _sel_sng:
+		audio = File(_sel_sng)
 
 		ntime = pygame.mixer.music.get_pos() / 1000
 		elapsed = time.strftime('%M:%S', time.gmtime(ntime))
@@ -94,17 +105,17 @@ def song_time():
 		naudio = time.strftime('%M:%S', time.gmtime(ail))
 		to_print = (elapsed + '/' + naudio)
 		passed_label.config(text=to_print)
-	window.after(80,song_time)
+	_dos.after(80,song_time)
 song_time()
 
-dir_label = Label(window,text='file',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-play_button = Label(window,text='play/stop',font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-vol_button = Label(window,text=str(global_volume),font=fonty2,fg=_standardfg,cursor='hand2',bg=_standardbg)
-passed_label = Label(window,text='00:00/00:00',fg=_standardfg,bg=_standardbg,font=fonty2,cursor='hand2')	#text was previously ''
-artist_label = Label(window,text='graphite',fg=_standardfg,bg=_standardbg,font=fonty2)
-song_name = Label(window,fg=_standardfg,bg=_standardbg,text='',font=fonty2)
+dir_label = Label(_dos,text='file',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
+play_button = Label(_dos,text='play/stop',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
+vol_button = Label(_dos,text=str(_glb_vol),font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
+passed_label = Label(_dos,text='00:00/00:00',fg=_fg,bg=_bg,font=_fnt,cursor='hand2')
+artist_label = Label(_dos,text='',fg=_fg,bg=_bg,font=_fnt)
+song_name = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
 
-#llll = Label(window,text='|',font=fonty2)
+#llll = Label(_dos,text='|',font=_fnt)
 #llll.place(x=240,y=250)
 
 dir_label.place(x=0,y=215)
@@ -118,7 +129,7 @@ artist_label.place(x=0,y=13)
 ttag = None
 
 def get_files(button):
-	global selected_song,song_list,current_index,hovering,paused,playing,artist_label,file_extension,song_raw_name,artist_name,song_path,app_path,coverty_w,coverty_h,_music_user_directory,coverty_path,send_notifs
+	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,send_notifs
 
 	if button == 1:
 		path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
@@ -127,118 +138,105 @@ def get_files(button):
 
 	if path:
 		files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-		files_covert = sorted([f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))])
+		files_covert = sorted([f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))])
 		if files:
-			song_list = [os.path.join(path, f) for f in files]
-			current_index = 0
+			_sng_lst = [os.path.join(path, f) for f in files]
+			_cur_inx = 0
 
-			selected_song = song_list[current_index]
-			song_raw_name, file_extension = os.path.splitext(os.path.basename(selected_song))
+			_sel_sng = _sng_lst[_cur_inx]
+			_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
 			pygame.mixer.music.stop()
-			hovering = False
-			paused = False
-			current_index = 0
+			_hvr = False
+			_pus = False
+			_cur_inx = 0
 		else:
-			song_list = []
-			selected_song = None
+			_sng_lst = []
+			_sel_sng = None
 			song_name.config(text='no audio :^(')
 		if files_covert:
 			covert_file = os.path.join(path, files_covert[0])
-			coverty_path = str(covert_file)
+			cover_path = str(covert_file)
 			try:
-				coverty = Image.open(covert_file)
-				coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
-				coverty = ImageTk.PhotoImage(coverty)
+				cover = Image.open(covert_file)
+				cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+				cover = ImageTk.PhotoImage(cover)
 
-				coverty_label.config(image=coverty)
-				coverty_label.image = coverty
+				cover_label.config(image=cover)
+				cover_label.image = cover
 			except Exception as e:
 				pass
 		else:
-			coverty_path = f'{_logo2_directory}'
-			coverty = Image.open(f'{_logo2_directory}')
-			coverty = coverty.resize((coverty_w, coverty_h), Image.Resampling.LANCZOS)
-			coverty = ImageTk.PhotoImage(coverty)
+			cover_path = f'{_logo2_directory}'
+			cover = Image.open(f'{_logo2_directory}')
+			cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+			cover = ImageTk.PhotoImage(cover)
 
-			coverty_label.config(image=coverty)
-			coverty_label.image = coverty
-	update_playing_info()
+			cover_label.config(image=cover)
+			cover_label.image = cover
+	update__ply_info()
 
 dir_label.bind('<Button-1>', lambda event: get_files(1))
-window.bind('<Tab>', lambda event: get_files(1))
+_dos.bind('<Tab>', lambda event: get_files(1))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
-dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_standardfg))
+dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_fg))
 
 def play_this_song():
-	global paused, playing, current_index, file_extension, song_raw_name, song_path, send_notifs, coverty_path
-
-	if selected_song:
-		pygame.mixer.music.load(selected_song)
-		pygame.mixer.music.set_volume(float(global_volume))
+	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, send_notifs, cover_path
+	if _sel_sng:
+		pygame.mixer.music.load(_sel_sng)
+		pygame.mixer.music.set_volume(float(_glb_vol))
 		pygame.mixer.music.play()
-		paused = False
-		playing = True
-		song_raw_name, file_extension = os.path.splitext(str(os.path.basename(selected_song)))
+		_pus = False
+		_ply = True
+		_sng_raw_nme, file_extension = os.path.splitext(str(os.path.basename(_sel_sng)))
 #		try:
 
-		ttag = TinyTag.get(str(selected_song))
-		artist_name = ttag.artist
-		print(artist_name)
-		print(song_raw_name)
-		artist_label.config(text=str(artist_name.lower()))
-		song_name.config(text=str(song_raw_name.lower()))
+		ttag = TinyTag.get(str(_sel_sng))
+		_art_nme = ttag.artist
+		artist_label.config(text=str(_art_nme.lower()))
+		song_name.config(text=str(_sng_raw_nme.lower()))
+		_dos.title(f'{_sng_raw_nme.lower()}')
 
 #		except Exception as e:
-#			artist_name = None
+#			_art_nme = None
 #			artist_label.config(text='no artist')
 
 	if send_notifs == 1:
-		subprocess.run(["notify-send", f"{song_raw_name} - {artist_name}", "-i", coverty_path], shell=False)
+		subprocess.run(["notify-send", f"{_sng_raw_nme} - {_art_nme}", "-i", cover_path], shell=False)
 
 def play_click(event=None):
-	global selected_song, paused, playing, play_inf, artist_name
-
-	if not selected_song:
+	global _sel_sng, _pus, _ply, _art_nme
+	if not _sel_sng:
 		song_name.config(text='no audio selected :^(')
 		return
 	else:
-		play_inf = 'playing'
 		play_this_song()
-
 def play_button_(event=None):
-	global play_inf,song_name,paused,playing,artist_name
-	if paused:
-		play_inf = 'playing'
+	global song_name,_pus,_ply,_art_nme
+	if _pus:
 		pygame.mixer.music.unpause()
-		play_button.config(fg=_standardfg)
-		paused = False
-		playing = True
-	elif playing:
-		play_inf = 'paused'
+		play_button.config(fg=_fg)
+		_pus = False
+		_ply = True
+	elif _ply:
 		pygame.mixer.music.pause()
-		paused = True
-		playing = False
+		_pus = True
+		_ply = False
 	else:
 		play_click()
 
 def vol_click(event):
-	global global_volume,vol_button
-
-	if global_volume < Decimal('1.00'):
-		global_volume += Decimal('0.05')
-
-		pygame.mixer.music.set_volume(float(global_volume))
-		vol_button.config(text=str(global_volume))
-
+	global _glb_vol,vol_button
+	if _glb_vol < Decimal('1.00'):
+		_glb_vol += Decimal('0.05')
+		pygame.mixer.music.set_volume(float(_glb_vol))
+		vol_button.config(text=str(_glb_vol))
 def vol_dec(event):
-	global global_volume,vol_button
-
-	if global_volume > Decimal('0.00'):
-		global_volume -= Decimal('0.05')
-
-		pygame.mixer.music.set_volume(float(global_volume))
-		vol_button.config(text=str(global_volume))
-
+	global _glb_vol,vol_button
+	if _glb_vol > Decimal('0.00'):
+		_glb_vol -= Decimal('0.05')
+		pygame.mixer.music.set_volume(float(_glb_vol))
+		vol_button.config(text=str(_glb_vol))
 def vol_scroll(event):
 	if event.delta > 0:
 		vol_click(event)
@@ -246,69 +244,72 @@ def vol_scroll(event):
 		vol_dec(event)
 
 def skip_left_click(event):
-	global global_volume,skip_left,current_index,selected_song
-	if current_index - 1 >= 0:
-		current_index -= 1
-		selected_song = song_list[current_index]
+	global _glb_vol,skip_left,_cur_inx,_sel_sng
+	if _cur_inx - 1 >= 0:
+		_cur_inx -= 1
+		_sel_sng = _sng_lst[_cur_inx]
 		play_this_song()
-
 def skip_left_enter(event):
-	global hovering
-	hovering = True
+	global _hvr
+	_hvr = True
 	skip_left.config(fg='grey')
 def skip_left_leave(event):
-	global hovering
-	hovering = False
-	skip_left.config(fg=_standardfg)
-
+	global _hvr
+	_hvr = False
+	skip_left.config(fg=_fg)
 def skip_right_click(event):
-	global global_volume,skip_right,current_index,selected_song
-	if current_index + 1 < len(song_list):
-		current_index += 1
-		selected_song = song_list[current_index]
+	global _glb_vol,skip_right,_cur_inx,_sel_sng
+	if _cur_inx + 1 < len(_sng_lst):
+		_cur_inx += 1
+		_sel_sng = _sng_lst[_cur_inx]
 		play_this_song()
-
 def skip_right_enter(event):
-	global hovering
-	hovering = True
+	global _hvr
+	_hvr = True
 	skip_right.config(fg='grey')
 def skip_right_leave(event):
-	global hovering
-	hovering = False
-	skip_right.config(fg=_standardfg)
+	global _hvr
+	_hvr = False
+	skip_right.config(fg=_fg)
 
-def update_playing_info():
-	global playing, paused, selected_song, current_index, song_list, hovering, play_inf, next_song1, next_song2, next_song3, next_song4, next_song5, playing_info, artist_name
+def update__ply_info():
+	global _ply, _pus, _sel_sng, _cur_inx, _sng_lst, _hvr, play, next_song1, next_song2, next_song3, next_song4, next_song5, _ply_info, _art_nme
 
-	if playing:
+	if _ply:
 		if pygame.mixer.music.get_busy():
-			play_inf = 'playing'
-		elif not paused and not hovering:
-			if current_index + 1 < len(song_list):
-				current_index += 1
-				selected_song = song_list[current_index]
+			pass
+		elif not _pus and not _hvr:
+			if _repeat == True:
+				_sel_sng = _sng_lst[_cur_inx]
 				play_this_song()
 			else:
-				playing = False
-				paused = False
-				play_inf = 'idle'
+				if _cur_inx + 1 < len(_sng_lst):
+					_cur_inx += 1
+					_sel_sng = _sng_lst[_cur_inx]
+					play_this_song()
+				else:
+					_cur_inx = 0
+					_sel_sng = _sng_lst[_cur_inx]
+					play_this_song()
 
-	if playing == True:
-		play_inf = 'playing'
+	if _ply == True:
 		play_button.config(text='stop')
-	elif paused == True:
-		play_inf = 'paused'
+	elif _pus == True:
 		play_button.config(text='play')
-	elif paused == False and playing == False:
-		play_inf = 'idle'
+	elif _pus == False and _ply == False:
 		play_button.config(text='play')
 
-	window.after(100, update_playing_info)
+	_dos.after(100, update__ply_info)
+
 
 def hide_ui():
 	global hidden
 
 	if hidden == 1:
+		dir_label.place(x=0,y=215)
+		play_button.place(x=35,y=215)
+		vol_button.place(x=105,y=215)
+		passed_label.place(x=230,y=224,anchor='e')
 		song_name.place(y=0)
 		artist_label.place(y=13)
 		hidden = 2
@@ -323,24 +324,32 @@ def hide_ui():
 	elif hidden == 4:
 		song_name.place(y=1000)
 		artist_label.place(y=1000)
+		hidden = 5
+	elif hidden == 5:
+		dir_label.place(x=0,y=1000)
+		play_button.place(x=35,y=1000)
+		vol_button.place(x=105,y=1000)
+		passed_label.place(x=115,y=224,anchor='c')
+		song_name.place(x=0,y=1000)
+		artist_label.place(x=0,y=1000)
 		hidden = 1
 
 play_button.bind('<Button-1>',play_button_)
 play_button.bind('<Enter>',lambda event: play_button.config(fg='grey'))
-play_button.bind('<Leave>',lambda event: play_button.config(fg=_standardfg))
-window.bind('<space>', play_button_)
+play_button.bind('<Leave>',lambda event: play_button.config(fg=_fg))
+_dos.bind('<space>', play_button_)
 vol_button.bind('<Button-4>', vol_click)
 vol_button.bind('<Button-5>', vol_dec)
-window.bind('<Up>', vol_click)
-window.bind('<Down>', vol_dec)
-window.bind('<Right>', skip_right_click)
-window.bind('<Left>', skip_left_click)
+_dos.bind('<Up>', vol_click)
+_dos.bind('<Down>', vol_dec)
+_dos.bind('<Right>', skip_right_click)
+_dos.bind('<Left>', skip_left_click)
 vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
-vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_standardfg))
+vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_fg))
 passed_label.bind('<Enter>', lambda event: passed_label.config(fg='grey'))
-passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_standardfg))
-window.bind('<KeyPress-g>', lambda event: hide_ui())
+passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_fg))
+_dos.bind('<KeyPress-g>', lambda event: hide_ui())
 
 get_files(0)
-update_playing_info()
-window.mainloop()
+update__ply_info()
+_dos.mainloop()
