@@ -18,13 +18,6 @@ pygame.mixer.init()
 home_path = Path.home()
 app_path = home_path / '.config' / 'graphite'
 config_path = app_path / 'graphite.conf'
-try:
-	_arg1 = str(sys.argv[1])
-	if type(_arg1) == str:
-		
-except Exception as IndexError:
-	print("please specify which directory to use.")
-	print("graphite [directory]")
 
 send_notifs = 0
 def read_settings():
