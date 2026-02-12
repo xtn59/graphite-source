@@ -62,6 +62,7 @@ _sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the seco
 _cur_inx = 0						#the current song number, will use it for this ^^^
 _art_nme = None
 _repeat = False
+ttag = None
 hidden = 2
 
 _dos = Tk()						#sets window
@@ -73,10 +74,10 @@ _dos.config(background=_bg)				#sets window background to standard background, a
 _dos.resizable(False,False)				#you cannot resize the _dos when this is uncommented.
 
 graph_logo = f'{_logo2_directory}'
-cover_w = 160  #150
-cover_x = 35 #37.5
-cover_h = 160  #150
-cover_y = 35   #50
+cover_w = 160   #150
+cover_x = 35    #37.5
+cover_h = 160   #150
+cover_y = 35    #50
 cover_label = Label(_dos,takefocus=0,bg=_bg)
 cover_label.place(x=cover_x,y=cover_y)
 # load logo
@@ -107,19 +108,16 @@ vol_button = Label(_dos,text=str(_glb_vol),font=_fnt,fg=_fg,cursor='hand2',bg=_b
 passed_label = Label(_dos,text='00:00/00:00',fg=_fg,bg=_bg,font=_fnt,cursor='hand2')
 artist_label = Label(_dos,text='',fg=_fg,bg=_bg,font=_fnt)
 song_name = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
-
-#llll = Label(_dos,text='|',font=_fnt)
-#llll.place(x=240,y=250)
+repeat_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
 
 dir_label.place(x=0,y=215)
 play_button.place(x=35,y=215)
 vol_button.place(x=105,y=215)
 passed_label.place(x=230,y=224,anchor='e')
-
 song_name.place(x=0,y=0)
 artist_label.place(x=0,y=13)
+repeat_label.place(x=220,y=0)
 
-ttag = None
 
 def get_files(button):
 	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,send_notifs
@@ -166,12 +164,7 @@ def get_files(button):
 
 			cover_label.config(image=cover)
 			cover_label.image = cover
-	update__ply_info()
-
-dir_label.bind('<Button-1>', lambda event: get_files(1))
-_dos.bind('<Tab>', lambda event: get_files(1))
-dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
-dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_fg))
+	update_ply_info()
 
 def play_this_song():
 	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, send_notifs, cover_path
@@ -195,7 +188,7 @@ def play_this_song():
 #			artist_label.config(text='no artist')
 
 	if send_notifs == 1:
-		subprocess.run(["notify-send", f"{_sng_raw_nme} - {_art_nme}", "-i", cover_path], shell=False)
+		subprocess.run(["notify-send", f"{_sng_raw_nme} - {_art_nme}", "-i", cover_path], shell=True)
 
 def play_click(event=None):
 	global _sel_sng, _pus, _ply, _art_nme
@@ -265,7 +258,7 @@ def skip_right_leave(event):
 	_hvr = False
 	skip_right.config(fg=_fg)
 
-def update__ply_info():
+def update_ply_info():
 	global _ply, _pus, _sel_sng, _cur_inx, _sng_lst, _hvr, play, next_song1, next_song2, next_song3, next_song4, next_song5, _ply_info, _art_nme
 
 	if _ply:
@@ -292,7 +285,7 @@ def update__ply_info():
 	elif _pus == False and _ply == False:
 		play_button.config(text='play')
 
-	_dos.after(100, update__ply_info)
+	_dos.after(100, update_ply_info)
 
 
 def hide_ui():
@@ -326,23 +319,41 @@ def hide_ui():
 		song_name.place(x=0,y=1000)
 		artist_label.place(x=0,y=1000)
 		hidden = 1
+def switch_r(event):
+	global _repeat
+	
+	if _repeat == False:
+		_repeat = True
+		repeat_label.config(text='R')
+		print('repeating...')
+	elif _repeat == True:
+		_repeat = False
+		repeat_label.config(text=' ')
+		print('not repeating')
 
+
+dir_label.bind('<Button-1>', lambda event: get_files(1))
+dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
+dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_fg))
 play_button.bind('<Button-1>',play_button_)
 play_button.bind('<Enter>',lambda event: play_button.config(fg='grey'))
 play_button.bind('<Leave>',lambda event: play_button.config(fg=_fg))
-_dos.bind('<space>', play_button_)
 vol_button.bind('<Button-4>', vol_click)
 vol_button.bind('<Button-5>', vol_dec)
-_dos.bind('<Up>', vol_click)
-_dos.bind('<Down>', vol_dec)
-_dos.bind('<Right>', skip_right_click)
-_dos.bind('<Left>', skip_left_click)
 vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
 vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_fg))
 passed_label.bind('<Enter>', lambda event: passed_label.config(fg='grey'))
 passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_fg))
+_dos.bind('<Tab>', lambda event: get_files(1))
+_dos.bind('<space>', play_button_)
+_dos.bind('<Up>', vol_click)
+_dos.bind('<Down>', vol_dec)
+_dos.bind('<Right>', skip_right_click)
+_dos.bind('<Left>', skip_left_click)
 _dos.bind('<KeyPress-g>', lambda event: hide_ui())
+_dos.bind('<KeyPress-r>', switch_r)
+
 
 get_files(0)
-update__ply_info()
+update_ply_info()
 _dos.mainloop()
