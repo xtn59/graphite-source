@@ -8,7 +8,7 @@ from decimal import Decimal
 from mutagen import File
 from PIL import Image, ImageTk
 from pathlib import Path
-import time, pygame, os, subprocess, sys
+import time, pygame, os, subprocess, sys, random
 
 subprocess.run('clear')
 
@@ -62,6 +62,7 @@ _sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the seco
 _cur_inx = 0						#the current song number, will use it for this ^^^
 _art_nme = None
 _repeat = False
+_shuffle = False
 ttag = None
 hidden = 2
 
@@ -71,7 +72,7 @@ _dos.title('graphite')					#sets window title to graphite
 icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.	
 _dos.iconphoto(True,icon)				#sets window logo to icon
 _dos.config(background=_bg)				#sets window background to standard background, at the start it is 'white'
-_dos.resizable(False,False)				#you cannot resize the _dos when this is uncommented.
+_dos.resizable(False,False)				#you cannot resize _dos when this is uncommented.
 
 graph_logo = f'{_logo2_directory}'
 cover_w = 160   #150
@@ -277,6 +278,11 @@ def update_ply_info():
 					_cur_inx = 0
 					_sel_sng = _sng_lst[_cur_inx]
 					play_this_song()
+			if _shuffle == True:
+				random_number = random.randint(0,len(_sng_lst))
+				_sel_sng = _sng_lst[random.randint(0,random_number)]
+				_cur_inx = random_number
+				play_this_song()
 
 	if _ply == True:
 		play_button.config(text='stop')
@@ -286,7 +292,6 @@ def update_ply_info():
 		play_button.config(text='play')
 
 	_dos.after(100, update_ply_info)
-
 
 def hide_ui():
 	global hidden
@@ -320,17 +325,25 @@ def hide_ui():
 		artist_label.place(x=0,y=1000)
 		hidden = 1
 def switch_r(event):
-	global _repeat
+	global _repeat, _shuffle
 	
+	_shuffle = False
 	if _repeat == False:
 		_repeat = True
 		repeat_label.config(text='R')
-		print('repeating...')
 	elif _repeat == True:
 		_repeat = False
 		repeat_label.config(text=' ')
-		print('not repeating')
+def switch_s(event):
+	global _repeat, _shuffle
 
+	_repeat = False
+	if _shuffle == False:
+		_shuffle = True
+		repeat_label.config(text='S')
+	elif _shuffle == True:
+		_shuffle = False
+		repeat_label.config(text=' ')
 
 dir_label.bind('<Button-1>', lambda event: get_files(1))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
@@ -352,7 +365,7 @@ _dos.bind('<Right>', skip_right_click)
 _dos.bind('<Left>', skip_left_click)
 _dos.bind('<KeyPress-g>', lambda event: hide_ui())
 _dos.bind('<KeyPress-r>', switch_r)
-
+_dos.bind('<KeyPress-s>', switch_s)
 
 get_files(0)
 update_ply_info()
