@@ -1,12 +1,5 @@
 graphite requires; 
 
-	pygame
-	subprocess
-	tkinter
-	mutagen
-	tinytag
-	decimal
-	os
-	time
-	sys
-	pillow
+	pygame, tkinter, mutagen, tinytag
+	subprocess, decimal, os, time, sys, random
+
