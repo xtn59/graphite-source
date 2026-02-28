@@ -18,10 +18,10 @@ pygame.mixer.init()
 home_path = Path.home()
 app_path = home_path / '.config' / 'graphite'
 config_path = app_path / 'graphite.conf'
+playlist_path = app_path / 'playlist.conf'
 
-send_notifs = 0
 def read_settings():
-	global send_notifs
+	global _notifications
 	with open(config_path, 'r') as cfg:
 		for line in cfg:
 			if ':' not in line:
@@ -43,15 +43,17 @@ def read_settings():
 			elif key == 'logo3 directory':
 				_logo3_directory = value
 			elif key == 'send notifs on song play':
-				send_notifs = int(value)
+				_notifications = int(value)
 
 	start_geo = "230x230"
 	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo
 
 _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
 
-gver = 'graphite [1.0]' # graphite version
+gver = 'graphite [1.1]' # graphite version
 
+_notifications = 0
+_logo = f'{_logo2_directory}'
 _glb_vol = Decimal('1.00')
 _sel_sng = None
 _pus = False
@@ -59,30 +61,32 @@ _ply = False
 _hvr = False
 _sng_raw_nme = None
 _sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the second, blah blah blah
-_cur_inx = 0						#the current song number, will use it for this ^^^
+_pls_lst = []						#_pls_lst[0] ------------------------------ | | ------------------------------- but on the playlist.
+_cur_inx = 0						#the current song number, use it like "str(_sng_lst[_cur_inx])" (will give song name)
 _art_nme = None
 _repeat = False
 _shuffle = False
 ttag = None
-hidden = 2
+_ui_state = 2
 
 _dos = Tk()						#sets window
 _dos.geometry(str(start_geo))				#sets starting geometry
 _dos.title('graphite')					#sets window title to graphite	
-icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.	
+icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.
 _dos.iconphoto(True,icon)				#sets window logo to icon
 _dos.config(background=_bg)				#sets window background to standard background, at the start it is 'white'
 _dos.resizable(False,False)				#you cannot resize _dos when this is uncommented.
+							#^if you are using a wayland compositor like hyprland or any other wm that automatically tiles windows,
+							#^set it to false. its gonna keep it always floating. (or just set a window rule in your compositor)
 
-graph_logo = f'{_logo2_directory}'
 cover_w = 160   #150
 cover_x = 35    #37.5
 cover_h = 160   #150
 cover_y = 35    #50
 cover_label = Label(_dos,takefocus=0,bg=_bg)
 cover_label.place(x=cover_x,y=cover_y)
-# load logo
-cover = Image.open(graph_logo)
+
+cover = Image.open(_logo)
 cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
 cover = ImageTk.PhotoImage(cover)
 cover_label.config(image=cover)
@@ -103,6 +107,9 @@ def song_time():
 	_dos.after(80,song_time)
 song_time()
 
+#set some labels and where they are supposed to be placed, i as in xtn am considering
+#to move to relx() instead of x=foo.
+
 dir_label = Label(_dos,text='file',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 play_button = Label(_dos,text='play/stop',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 vol_button = Label(_dos,text=str(_glb_vol),font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
@@ -120,55 +127,76 @@ artist_label.place(x=0,y=13)
 repeat_label.place(x=220,y=0)
 
 
-def get_files(button):
-	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,send_notifs
+def get_files(button,playlist):
+	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,_notifications
 
-	if button == 1:
-		path = filedialog.askdirectory(initialdir=str({_music_user_directory}))	
+	if playlist == False:
+		if button == 1:
+			path = filedialog.askdirectory(initialdir={_music_user_directory})	
+		else:
+			path = os.getcwd()
+
+	files = []
+	files_covert = []
+
+	if playlist == False:
+		if path:
+			files = [f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))]
+			files_covert = [f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))]
 	else:
-		path = os.getcwd()
+		#This will allow us to read the specific and absolute paths of a file from ~/.config/graphite/playlist.conf
+		#Later in the production of graphite i will lean towards a program, or just graphite, that helps the user choose the songs
+		#and write the paths to the playlist just like in cmus.
 
-	if path:
-		files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-		files_covert = sorted([f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))])
-		if files:
+		with open(playlist_path, 'r') as f:
+			for line in f:
+				lne = (str(line)).strip('\n')
+				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
+					files.append(lne)
+				elif lne.endswith(('cover.jpg','cover.png')):
+					files_covert.append(lne)
+	print(files)
+	print(files_covert)
+
+	if files:
+		if playlist == False:
 			_sng_lst = [os.path.join(path, f) for f in files]
-			_cur_inx = 0
-
-			_sel_sng = _sng_lst[_cur_inx]
-			_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
-			pygame.mixer.music.stop()
-			_hvr = False
-			_pus = False
-			_cur_inx = 0
 		else:
-			_sng_lst = []
-			_sel_sng = None
-			song_name.config(text='no audio :^(')
-		if files_covert:
-			covert_file = os.path.join(path, files_covert[0])
-			cover_path = str(covert_file)
-			try:
-				cover = Image.open(covert_file)
-				cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
-				cover = ImageTk.PhotoImage(cover)
-
-				cover_label.config(image=cover)
-				cover_label.image = cover
-			except Exception as e:
-				pass
-		else:
-			cover_path = f'{_logo2_directory}'
-			cover = Image.open(f'{_logo2_directory}')
+			_sng_lst = files			
+		_sel_sng = _sng_lst[_cur_inx]
+		_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
+		pygame.mixer.music.stop()
+		_hvr = False
+		_pus = False
+		_cur_inx = 0
+	else:
+		_sng_lst = []
+		_sel_sng = None
+		song_name.config(text='no audio :^(')
+	if files_covert:
+		covert_file = os.path.join(path, files_covert[0])
+		cover_path = str(covert_file)
+		try:
+			cover = Image.open(covert_file)
 			cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
 			cover = ImageTk.PhotoImage(cover)
 
 			cover_label.config(image=cover)
 			cover_label.image = cover
+		except Exception as e:
+			pass
+	else:
+		cover_path = f'{_logo2_directory}'
+		cover = Image.open(f'{_logo2_directory}')
+		cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+		cover = ImageTk.PhotoImage(cover)
+
+		cover_label.config(image=cover)
+		cover_label.image = cover
 	update_ply_info()
 
 def play_this_song():
-	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, send_notifs, cover_path
+	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, _notifications, cover_path
 	if _sel_sng:
 		pygame.mixer.music.load(_sel_sng)
 		pygame.mixer.music.set_volume(float(_glb_vol))
@@ -180,6 +208,7 @@ def play_this_song():
 
 		ttag = TinyTag.get(str(_sel_sng))
 		_art_nme = ttag.artist
+		if len(_art_nme) >= 25
 		artist_label.config(text=str(_art_nme.lower()))
 		song_name.config(text=str(_sng_raw_nme.lower()))
 		_dos.title(f'{_sng_raw_nme.lower()}')
@@ -188,7 +217,7 @@ def play_this_song():
 #			_art_nme = None
 #			artist_label.config(text='no artist')
 
-	if send_notifs == 1:
+	if _notifications == 1:
 		subprocess.run(["notify-send", f"{_sng_raw_nme} - {_art_nme}", "-i", cover_path], shell=True)
 
 def play_click(event=None):
@@ -294,36 +323,36 @@ def update_ply_info():
 	_dos.after(100, update_ply_info)
 
 def hide_ui():
-	global hidden
+	global _ui_state
 
-	if hidden == 1:
+	if _ui_state == 1:
 		dir_label.place(x=0,y=215)
 		play_button.place(x=35,y=215)
 		vol_button.place(x=105,y=215)
 		passed_label.place(x=230,y=224,anchor='e')
 		song_name.place(y=0)
 		artist_label.place(y=13)
-		hidden = 2
-	elif hidden == 2:
+		_ui_state = 2
+	elif _ui_state == 2:
 		song_name.place(y=0)
 		artist_label.place(y=1000)
-		hidden = 3
-	elif hidden == 3:
+		_ui_state = 3
+	elif _ui_state == 3:
 		song_name.place(y=1000)
 		artist_label.place(y=0)
-		hidden = 4
-	elif hidden == 4:
+		_ui_state = 4
+	elif _ui_state == 4:
 		song_name.place(y=1000)
 		artist_label.place(y=1000)
-		hidden = 5
-	elif hidden == 5:
+		_ui_state = 5
+	elif _ui_state == 5:
 		dir_label.place(x=0,y=1000)
 		play_button.place(x=35,y=1000)
 		vol_button.place(x=105,y=1000)
 		passed_label.place(x=115,y=224,anchor='c')
 		song_name.place(x=0,y=1000)
 		artist_label.place(x=0,y=1000)
-		hidden = 1
+		_ui_state = 1
 def switch_r(event):
 	global _repeat, _shuffle
 	
@@ -345,7 +374,7 @@ def switch_s(event):
 		_shuffle = False
 		repeat_label.config(text=' ')
 
-dir_label.bind('<Button-1>', lambda event: get_files(1))
+dir_label.bind('<Button-1>', lambda event: get_files(1,False))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_fg))
 play_button.bind('<Button-1>',play_button_)
@@ -357,16 +386,17 @@ vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
 vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_fg))
 passed_label.bind('<Enter>', lambda event: passed_label.config(fg='grey'))
 passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_fg))
-_dos.bind('<Tab>', lambda event: get_files(1))
+_dos.bind('<Tab>', lambda event: get_files(1,False))
 _dos.bind('<space>', play_button_)
 _dos.bind('<Up>', vol_click)
 _dos.bind('<Down>', vol_dec)
 _dos.bind('<Right>', skip_right_click)
 _dos.bind('<Left>', skip_left_click)
 _dos.bind('<KeyPress-g>', lambda event: hide_ui())
+_dos.bind('<KeyPress-p>', lambda event: get_files(1,True))
 _dos.bind('<KeyPress-r>', switch_r)
 _dos.bind('<KeyPress-s>', switch_s)
 
-get_files(0)
+get_files(0,False)
 update_ply_info()
 _dos.mainloop()
