@@ -132,9 +132,17 @@ def get_files(button,playlist):
 
 	if playlist == False:
 		if button == 1:
-			path = filedialog.askdirectory(initialdir={_music_user_directory})	
-		else:
+			path = filedialog.askdirectory(initialdir=_music_user_directory)
+		elif button == 0:
 			path = os.getcwd()
+		elif button == 5:
+
+			path = str((sys.argv[1]).strip())
+
+			if path.startswith('~') == True:
+				path = path.replace("~", f"{Path.home()}", 1)
+
+	print(path)
 
 	files = []
 	files_covert = []
@@ -155,9 +163,6 @@ def get_files(button,playlist):
 					files.append(lne)
 				elif lne.endswith(('cover.jpg','cover.png')):
 					files_covert.append(lne)
-	print(files)
-	print(files_covert)
-
 	if files:
 		if playlist == False:
 			_sng_lst = [os.path.join(path, f) for f in files]
@@ -208,7 +213,6 @@ def play_this_song():
 
 		ttag = TinyTag.get(str(_sel_sng))
 		_art_nme = ttag.artist
-		if len(_art_nme) >= 25
 		artist_label.config(text=str(_art_nme.lower()))
 		song_name.config(text=str(_sng_raw_nme.lower()))
 		_dos.title(f'{_sng_raw_nme.lower()}')
@@ -352,6 +356,9 @@ def hide_ui():
 		passed_label.place(x=115,y=224,anchor='c')
 		song_name.place(x=0,y=1000)
 		artist_label.place(x=0,y=1000)
+		_ui_state = 6
+	elif _ui_state == 6:
+		passed_label.place(y=1000)
 		_ui_state = 1
 def switch_r(event):
 	global _repeat, _shuffle
@@ -397,6 +404,11 @@ _dos.bind('<KeyPress-p>', lambda event: get_files(1,True))
 _dos.bind('<KeyPress-r>', switch_r)
 _dos.bind('<KeyPress-s>', switch_s)
 
-get_files(0,False)
+if len(sys.argv) > 1:
+	_music_user_directory = str((sys.argv[1]).strip())
+	get_files(5,False)
+else:
+	get_files(0,False)
+
 update_ply_info()
 _dos.mainloop()
