@@ -50,7 +50,7 @@ def read_settings():
 
 _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
 
-gver = 'graphite [1.1]' # graphite version
+gver = 'graphite [1.2]' # graphite version
 
 _notifications = 0
 _logo = f'{_logo2_directory}'

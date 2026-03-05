@@ -11,6 +11,10 @@ if [[ $issu == "root" ]]; then
 	exit
 fi
 
+echo "installing dependencies with pip..."
+
+pip install -r requirements.txt --break-system-packages
+
 echo "making directories and copying files..."
 
 mkdir -p ~/.config/graphite
