@@ -60,8 +60,7 @@ _pus = False
 _ply = False
 _hvr = False
 _sng_raw_nme = None
-_sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the second, blah blah blah
-_pls_lst = []						#_pls_lst[0] ------------------------------ | | ------------------------------- but on the playlist.
+_sng_lst = []						#_sng_lst[0] will be the name of the first song, [1] the second, and so on.
 _cur_inx = 0						#the current song number, use it like "str(_sng_lst[_cur_inx])" (will give song name)
 _art_nme = None
 _repeat = False
@@ -132,29 +131,28 @@ def get_files(button,playlist):
 
 	if playlist == False:
 		if button == 1:
+			# After [1.2] i will make a file explorer window instead of filedialog.
 			path = filedialog.askdirectory(initialdir=_music_user_directory)
 		elif button == 0:
 			path = os.getcwd()
-		elif button == 5:
-
-			path = str((sys.argv[1]).strip())
-
-			if path.startswith('~') == True:
-				path = path.replace("~", f"{Path.home()}", 1)
-
-	print(path)
+		elif button == 5: 
+			for i in _arg_lst:
+				if i.startswith("--dir="):
+					path = i.split("--dir=")[1]
+					if path.startswith('~') == True:
+						path = path.replace("~", f"{Path.home()}", 1)
 
 	files = []
 	files_covert = []
 
 	if playlist == False:
 		if path:
-			files = [f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))]
+			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
 			files_covert = [f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))]
 	else:
 		#This will allow us to read the specific and absolute paths of a file from ~/.config/graphite/playlist.conf
 		#Later in the production of graphite i will lean towards a program, or just graphite, that helps the user choose the songs
-		#and write the paths to the playlist just like in cmus.
+		#and write the paths to the playlist just like in cmus with "add {directory}"
 
 		with open(playlist_path, 'r') as f:
 			for line in f:
@@ -209,7 +207,6 @@ def play_this_song():
 		_pus = False
 		_ply = True
 		_sng_raw_nme, file_extension = os.path.splitext(str(os.path.basename(_sel_sng)))
-#		try:
 
 		ttag = TinyTag.get(str(_sel_sng))
 		_art_nme = ttag.artist
@@ -217,17 +214,13 @@ def play_this_song():
 		song_name.config(text=str(_sng_raw_nme.lower()))
 		_dos.title(f'{_sng_raw_nme.lower()}')
 
-#		except Exception as e:
-#			_art_nme = None
-#			artist_label.config(text='no artist')
-
 	if _notifications == 1:
 		subprocess.run(["notify-send", f"{_sng_raw_nme} - {_art_nme}", "-i", cover_path], shell=True)
 
 def play_click(event=None):
 	global _sel_sng, _pus, _ply, _art_nme
 	if not _sel_sng:
-		song_name.config(text='no audio selected :^(')
+		song_name.config(text='no files given')
 		return
 	else:
 		play_this_song()
@@ -405,10 +398,36 @@ _dos.bind('<KeyPress-r>', switch_r)
 _dos.bind('<KeyPress-s>', switch_s)
 
 if len(sys.argv) > 1:
-	_music_user_directory = str((sys.argv[1]).strip())
-	get_files(5,False)
-else:
-	get_files(0,False)
+	_arg_lst = []
+	_get = 0
+
+	for i in sys.argv[1:]:
+		_arg_lst.append(i)
+
+	if "--help" in _arg_lst:
+		print("usage; graphite [--key=word]")
+		print("options;")
+		print("    --dir         [directory for music, can be a tree with folders with music]")
+		print("    --shuffle     [immediately set shuffle on]")
+		print("    --repeat      [immediately set repeat on]")
+		print("    --help        [display this help and exit]")
+		print("example; graphite --dir=~/mus/suicideboys/dsotc --shuffle")
+		print("        ^ this will play \"Dark Side of the Clouds\" by $uicideboy$, and immediately shuffle the album.")
+		sys.exit()
+
+	for i in _arg_lst:
+		if i.startswith("--dir="):
+			_music_user_directory = i.split("--dir=")[1]
+			_get = 1
+		elif i == "--shuffle":
+			switch_s(None)
+		elif i == "--repeat":
+			switch_r(None)
+	
+	if _get == 1:
+		get_files(5,False)
+	else:
+		get_files(0,False)
 
 update_ply_info()
 _dos.mainloop()
