@@ -3,7 +3,6 @@
 from tkinter import *
 from tinytag import TinyTag
 import tkinter as tk
-from tkinter import filedialog
 from decimal import Decimal
 from mutagen import File
 from PIL import Image, ImageTk
@@ -29,7 +28,7 @@ def read_settings():
 			key, value = line.split(':', 1)
 			key = key.strip()
 			value = value.strip()			
-
+		
 			if key == 'foreground':
 				_fg = str(value)
 			elif key == 'background':
@@ -45,14 +44,22 @@ def read_settings():
 			elif key == 'send notifs on song play':
 				_notifications = int(value)
 
-	start_geo = "230x230"
-	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo
+	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory
 
-_fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory, start_geo = read_settings()
+try:
+	_fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory = read_settings()
+except UnboundLocalError:
+	_fg = 'black'
+	_bg = 'white'
+	_fnt = ('misc fixed', 10)
+	_music_user_directory = Path.home()
+	_logo2_directory = Path.home() / '.config' / 'graphite' / 'logo2.png'
+	_logo3_directory = Path.home() / '.config' / 'graphite' / 'logo3.png'
+	_notifications = 0
 
-gver = 'graphite [1.2]' # graphite version
+gver = 'graphite [1.3]' # graphite version
 
-_notifications = 0
+start_geo = "230x230"
 _logo = f'{_logo2_directory}'
 _glb_vol = Decimal('1.00')
 _sel_sng = None
@@ -125,14 +132,108 @@ song_name.place(x=0,y=0)
 artist_label.place(x=0,y=13)
 repeat_label.place(x=220,y=0)
 
+def filex(thing):
+	global _fg, _bg, _fnt
+	
+	_conf_path = Path.home() / '.config' / 'graphite' / 'graphite.conf'
+	_shdots = False
+	_label_lst = []
+
+	_dos2 = Toplevel(_dos)
+	_dos2.geometry("450x350")
+	_dos2.resizable(False,False)
+	_dos2.config(bg=_bg)
+
+#	Had issues with dir_label
+#	_dos2.grab_set()
+
+	_return = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="<-",cursor='hand2')
+	_return.place(x=5,y=5)
+	_return.bind('<Enter>', lambda event: _return.config(fg='grey'))
+	_return.bind('<Leave>', lambda event: _return.config(fg=_fg))
+	_return.bind('<Button-1>', lambda event: retur())
+	
+	_ok = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="ok",cursor='hand2')
+	_ok.place(x=25,y=5)
+	_ok.bind('<Enter>', lambda event: _ok.config(fg='grey'))
+	_ok.bind('<Leave>', lambda event: _ok.config(fg=_fg))
+	_ok.bind('<Button-1>', lambda event: end_file())	
+
+	def end_file():
+		_dos2.destroy()
+	
+	def retur():
+		nonlocal thing
+		thing = os.path.dirname(thing)
+		shfiles()
+	
+	def shdots():
+		nonlocal _shdots
+
+		if _shdots == True:
+			_shdots = False
+		elif _shdots == False:
+			_shdots = True
+
+		shfiles()
+	
+	def shfiles():
+		nonlocal _label_lst, _shdots, thing
+
+		_dos2.title(f'{thing}')
+
+		if _shdots == False:
+			_file_lst = sorted([f for f in os.listdir(thing) if not f.startswith('.')])
+		else:
+			_file_lst = sorted([f for f in os.listdir(thing)])
+			
+		offset_y = 20
+	
+		if len(_label_lst) > 0:
+			for i in _label_lst:
+				i.destroy()
+	
+			_label_lst.clear()
+	
+		def change_path(path,file):
+			nonlocal thing
+
+			if os.path.isdir(os.path.join(thing, file)) == True:
+				thing = path
+				shfiles()
+			else:
+				print('not a directory')
+	
+		for f in _file_lst:
+			_file_label = Label(_dos2, text=f,bg=_bg,fg=_fg,font=_fnt,cursor='hand2')
+			_label_lst.append(_file_label)
+		
+		for i in _label_lst:
+			i.place(x=10,y=(10 + offset_y))
+			i.bind('<Enter>', lambda event, it=i: it.config(fg='grey'))
+			i.bind('<Leave>', lambda event, it=i: it.config(fg=_fg))
+			i.bind('<Button-1>', lambda event, it=i: change_path(os.path.join(thing, it.cget('text')), str(it.cget('text'))))
+
+			_place_info = i.place_info()
+			_dos2.geometry(f'450x{int(_place_info['y']) + 22}')
+
+			offset_y += 15
+
+		offset_y = 0
+		_file_lst = []
+	
+	shfiles()
+	_dos2.bind('<period>', lambda event: shdots())
+	_dos.wait_window(_dos2)
+	return thing
 
 def get_files(button,playlist):
 	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,_notifications
 
 	if playlist == False:
 		if button == 1:
-			# After [1.2] i will make a file explorer window instead of filedialog.
-			path = filedialog.askdirectory(initialdir=_music_user_directory)
+			# As promised, peak of my creativity.
+			path = filex(_music_user_directory)
 		elif button == 0:
 			path = os.getcwd()
 		elif button == 5: 
@@ -141,14 +242,13 @@ def get_files(button,playlist):
 					path = i.split("--dir=")[1]
 					if path.startswith('~') == True:
 						path = path.replace("~", f"{Path.home()}", 1)
-
 	files = []
 	files_covert = []
 
 	if playlist == False:
 		if path:
 			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-			files_covert = [f for f in os.listdir(path) if f.lower().endswith(('cover.jpg','cover.png'))]
+			files_covert = [f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))]
 	else:
 		#This will allow us to read the specific and absolute paths of a file from ~/.config/graphite/playlist.conf
 		#Later in the production of graphite i will lean towards a program, or just graphite, that helps the user choose the songs
@@ -159,8 +259,9 @@ def get_files(button,playlist):
 				lne = (str(line)).strip('\n')
 				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
 					files.append(lne)
-				elif lne.endswith(('cover.jpg','cover.png')):
+				elif lne.endswith(('.jpg','.png')):
 					files_covert.append(lne)
+
 	if files:
 		if playlist == False:
 			_sng_lst = [os.path.join(path, f) for f in files]
@@ -196,6 +297,10 @@ def get_files(button,playlist):
 
 		cover_label.config(image=cover)
 		cover_label.image = cover
+	
+	if len(_sng_lst) > 0:
+		play_this_song()
+
 	update_ply_info()
 
 def play_this_song():
@@ -305,8 +410,8 @@ def update_ply_info():
 					_sel_sng = _sng_lst[_cur_inx]
 					play_this_song()
 			if _shuffle == True:
-				random_number = random.randint(0,len(_sng_lst))
-				_sel_sng = _sng_lst[random.randint(0,random_number)]
+				random_number = random.randint(0,len(_sel_sng))
+				_sel_sng = _sng_lst[random_number]
 				_cur_inx = random_number
 				play_this_song()
 
