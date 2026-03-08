@@ -30,8 +30,7 @@ foreground:black
 background:white
 font:Misc Fixed
 
-# Path.home() is a function in python
-directory to choose music from:f'{Path.home()}'
+directory to choose music from:$HOME
 logo2 directory:$HOME/.config/graphite/logo2.png
 logo3 directory:$HOME/.config/graphite/logo3.png
 
