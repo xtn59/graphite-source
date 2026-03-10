@@ -47,9 +47,12 @@ def read_settings():
 	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory
 
 try:
+
 	_fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory = read_settings()
+
 except UnboundLocalError:
-	_fg = 'black'
+
+	_fg = 'red'
 	_bg = 'white'
 	_fnt = ('misc fixed', 10)
 	_music_user_directory = Path.home()
@@ -57,10 +60,13 @@ except UnboundLocalError:
 	_logo3_directory = Path.home() / '.config' / 'graphite' / 'logo3.png'
 	_notifications = 0
 
-gver = 'graphite [1.3]' # graphite version
+gver = 'graphite [1.4]' # graphite version
+
+# declare important variables
 
 start_geo = "230x230"
 _logo = f'{_logo2_directory}'
+_cur_logo = f'{_logo2_directory}'
 _glb_vol = Decimal('1.00')
 _sel_sng = None
 _pus = False
@@ -85,19 +91,24 @@ _dos.resizable(False,False)				#you cannot resize _dos when this is uncommented.
 							#^if you are using a wayland compositor like hyprland or any other wm that automatically tiles windows,
 							#^set it to false. its gonna keep it always floating. (or just set a window rule in your compositor)
 
-cover_w = 160   #150
-cover_x = 35    #37.5
-cover_h = 160   #150
-cover_y = 35    #50
+cover_w = 160
+cover_x = 35
+cover_h = 160
+cover_y = 35
+
 cover_label = Label(_dos,takefocus=0,bg=_bg)
 cover_label.place(x=cover_x,y=cover_y)
 
-cover = Image.open(_logo)
-cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
-cover = ImageTk.PhotoImage(cover)
-cover_label.config(image=cover)
-cover_label.image = cover
-cover_path = None
+def display_logo(lgo):
+	global _cur_logo
+	_cur_logo = lgo
+
+	cover = Image.open(lgo)
+	cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+	cover = ImageTk.PhotoImage(cover)
+	cover_label.config(image=cover)
+	cover_label.image = cover
+	cover_path = None
 
 def song_time():
 	global _sel_sng, _ply
@@ -111,30 +122,47 @@ def song_time():
 		to_print = (elapsed + '/' + naudio)
 		passed_label.config(text=to_print)
 	_dos.after(80,song_time)
-song_time()
 
-#set some labels and where they are supposed to be placed, i as in xtn am considering
-#to move to relx() instead of x=foo.
+def write_topl(file):
+
+	if os.path.isdir(file) == False:
+		with open(playlist_path, 'a') as p:
+			p.write(f"\n{file}")
+		print(f"writing {file} --> {playlist_path}")
+	else:
+		print(f"cannot write, {file} is a directory.")
+
+song_time()
+display_logo(_logo)
+
+#nvm. fuck rel coords
 
 dir_label = Label(_dos,text='file',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 play_button = Label(_dos,text='play/stop',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 vol_button = Label(_dos,text=str(_glb_vol),font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 passed_label = Label(_dos,text='00:00/00:00',fg=_fg,bg=_bg,font=_fnt,cursor='hand2')
 artist_label = Label(_dos,text='',fg=_fg,bg=_bg,font=_fnt)
-song_name = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
+_song_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
 repeat_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
 
 dir_label.place(x=0,y=215)
 play_button.place(x=35,y=215)
 vol_button.place(x=105,y=215)
 passed_label.place(x=230,y=224,anchor='e')
-song_name.place(x=0,y=0)
+_song_label.place(x=0,y=0)
 artist_label.place(x=0,y=13)
 repeat_label.place(x=220,y=0)
 
 def filex(thing):
 	global _fg, _bg, _fnt
-	
+
+	_cur_dir = get_listening_dir()
+
+	if _cur_dir != None:
+		thing = _cur_dir
+	else:
+		pass
+
 	_conf_path = Path.home() / '.config' / 'graphite' / 'graphite.conf'
 	_shdots = False
 	_label_lst = []
@@ -213,6 +241,7 @@ def filex(thing):
 			i.bind('<Enter>', lambda event, it=i: it.config(fg='grey'))
 			i.bind('<Leave>', lambda event, it=i: it.config(fg=_fg))
 			i.bind('<Button-1>', lambda event, it=i: change_path(os.path.join(thing, it.cget('text')), str(it.cget('text'))))
+			i.bind('<Button-3>', lambda event, it=i: write_topl(os.path.join(thing, it.cget('text'))))
 
 			_place_info = i.place_info()
 			_dos2.geometry(f'450x{int(_place_info['y']) + 22}')
@@ -227,13 +256,30 @@ def filex(thing):
 	_dos.wait_window(_dos2)
 	return thing
 
+def get_listening_dir():
+	try:
+		dirname = os.path.dirname(_sng_lst[_cur_inx].strip())
+		return dirname
+	except IndexError:
+		dirname = None
+		return dirname
+
 def get_files(button,playlist):
 	global _sel_sng,_sng_lst,_cur_inx,_hvr,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,_notifications
 
 	if playlist == False:
 		if button == 1:
-			# As promised, peak of my creativity.
+
+			if _music_user_directory.startswith("~"):
+				_music_user_directory = _music_user_directory.replace("~", f"{Path.home()}", 1)
+
 			path = filex(_music_user_directory)
+
+			if _music_user_directory == path:
+				return
+			elif _sel_sng != None and os.path.dirname(_sel_sng) == path:
+				return
+
 		elif button == 0:
 			path = os.getcwd()
 		elif button == 5: 
@@ -243,16 +289,15 @@ def get_files(button,playlist):
 					if path.startswith('~') == True:
 						path = path.replace("~", f"{Path.home()}", 1)
 	files = []
-	files_covert = []
+	files_cover = []
 
 	if playlist == False:
 		if path:
 			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-			files_covert = [f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))]
+			files_cover = [f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))]
 	else:
 		#This will allow us to read the specific and absolute paths of a file from ~/.config/graphite/playlist.conf
-		#Later in the production of graphite i will lean towards a program, or just graphite, that helps the user choose the songs
-		#and write the paths to the playlist just like in cmus with "add {directory}"
+		#The user can right click on a file in filex to add it to the playlist.
 
 		with open(playlist_path, 'r') as f:
 			for line in f:
@@ -260,43 +305,42 @@ def get_files(button,playlist):
 				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
 					files.append(lne)
 				elif lne.endswith(('.jpg','.png')):
-					files_covert.append(lne)
+					files_cover.append(lne)
 
-	if files:
-		if playlist == False:
-			_sng_lst = [os.path.join(path, f) for f in files]
+	try:
+		if files:
+			if playlist == False:
+				_sng_lst = [os.path.join(path, f) for f in files]
+			else:
+				_sng_lst = files			
+			_sel_sng = _sng_lst[_cur_inx]
+			_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
+			pygame.mixer.music.stop()
+			_hvr = False
+			_pus = False
+			_cur_inx = 0
 		else:
-			_sng_lst = files			
-		_sel_sng = _sng_lst[_cur_inx]
-		_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
-		pygame.mixer.music.stop()
-		_hvr = False
-		_pus = False
-		_cur_inx = 0
-	else:
-		_sng_lst = []
-		_sel_sng = None
-		song_name.config(text='no audio :^(')
-	if files_covert:
-		covert_file = os.path.join(path, files_covert[0])
-		cover_path = str(covert_file)
-		try:
-			cover = Image.open(covert_file)
-			cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
-			cover = ImageTk.PhotoImage(cover)
+			_sng_lst = []
+			_sel_sng = None
+			_song_label.config(text='no files given')
+			pygame.mixer.music.stop()
+			_hvr = False
+			_pus = False
+			_cur_inx = 0
+	except Exception as e:
+		print(f"error: {e}")
 
-			cover_label.config(image=cover)
-			cover_label.image = cover
+	if files_cover:
+		if playlist == False:
+			cover_file = os.path.join(path, files_cover[0])
+		else:
+			cover_file = str(files_cover[0]).strip()
+		try:
+			display_logo(cover_file)
 		except Exception as e:
 			pass
 	else:
-		cover_path = f'{_logo2_directory}'
-		cover = Image.open(f'{_logo2_directory}')
-		cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
-		cover = ImageTk.PhotoImage(cover)
-
-		cover_label.config(image=cover)
-		cover_label.image = cover
+		display_logo(_logo2_directory)
 	
 	if len(_sng_lst) > 0:
 		play_this_song()
@@ -316,7 +360,7 @@ def play_this_song():
 		ttag = TinyTag.get(str(_sel_sng))
 		_art_nme = ttag.artist
 		artist_label.config(text=str(_art_nme.lower()))
-		song_name.config(text=str(_sng_raw_nme.lower()))
+		_song_label.config(text=str(_sng_raw_nme.lower()))
 		_dos.title(f'{_sng_raw_nme.lower()}')
 
 	if _notifications == 1:
@@ -325,12 +369,12 @@ def play_this_song():
 def play_click(event=None):
 	global _sel_sng, _pus, _ply, _art_nme
 	if not _sel_sng:
-		song_name.config(text='no files given')
+		_song_label.config(text='no files given')
 		return
 	else:
 		play_this_song()
 def play_button_(event=None):
-	global song_name,_pus,_ply,_art_nme
+	global _song_label,_pus,_ply,_art_nme
 	if _pus:
 		pygame.mixer.music.unpause()
 		play_button.config(fg=_fg)
@@ -425,39 +469,63 @@ def update_ply_info():
 	_dos.after(100, update_ply_info)
 
 def hide_ui():
-	global _ui_state
+	global _ui_state, _cur_logo, cover_x, cover_y, cover_w, cover_h, cover_label
 
 	if _ui_state == 1:
+
+		cover_x = 35
+		cover_y = 35
+		cover_w = 160
+		cover_h = 160
+		cover_label.place(x=cover_x,y=cover_y)
+
+		display_logo(_cur_logo)
+
 		dir_label.place(x=0,y=215)
 		play_button.place(x=35,y=215)
 		vol_button.place(x=105,y=215)
 		passed_label.place(x=230,y=224,anchor='e')
-		song_name.place(y=0)
+		_song_label.place(y=0)
 		artist_label.place(y=13)
+		repeat_label.place(y=0)
+
 		_ui_state = 2
 	elif _ui_state == 2:
-		song_name.place(y=0)
+		_song_label.place(y=0)
 		artist_label.place(y=1000)
 		_ui_state = 3
 	elif _ui_state == 3:
-		song_name.place(y=1000)
+		_song_label.place(y=1000)
 		artist_label.place(y=0)
 		_ui_state = 4
 	elif _ui_state == 4:
-		song_name.place(y=1000)
+		_song_label.place(y=1000)
 		artist_label.place(y=1000)
 		_ui_state = 5
 	elif _ui_state == 5:
 		dir_label.place(x=0,y=1000)
-		play_button.place(x=35,y=1000)
-		vol_button.place(x=105,y=1000)
+		play_button.place(y=1000)
+		vol_button.place(y=1000)
 		passed_label.place(x=115,y=224,anchor='c')
-		song_name.place(x=0,y=1000)
-		artist_label.place(x=0,y=1000)
+		_song_label.place(y=1000)
+		artist_label.place(y=1000)
+		repeat_label.place(y=1000)
 		_ui_state = 6
 	elif _ui_state == 6:
 		passed_label.place(y=1000)
+		_ui_state = 7
+	elif _ui_state == 7:
+
+		cover_x = -1
+		cover_y = -1
+		cover_w = 230
+		cover_h = 230
+
+		cover_label.place(x=cover_x,y=cover_y)
+		display_logo(_cur_logo)
+
 		_ui_state = 1
+
 def switch_r(event):
 	global _repeat, _shuffle
 	
