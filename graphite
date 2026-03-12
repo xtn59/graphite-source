@@ -105,7 +105,7 @@ except UnboundLocalError:
 	_def_songy = 0
 	_def_statusy = 0
 
-_graphite_version = 'graphite [1.4]' # graphite version
+_graphite_version = 'graphite [1.5]' # graphite version
 
 # greet message
 print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
