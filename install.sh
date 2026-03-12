@@ -11,9 +11,12 @@ if [[ $issu == "root" ]]; then
 	exit
 fi
 
-echo "installing dependencies with pip..."
+read -p "[y/anything] install pip dependencies?" pip
 
-pip install -r requirements.txt --break-system-packages
+if [[ $pip == "y" ]]; then
+	echo "installing dependencies with pip..."
+	pip install -r requirements.txt --break-system-packages
+fi
 
 echo "making directories and copying files..."
 
@@ -25,17 +28,30 @@ sudo cp -r graphite /bin/
 sudo cp -r 6x13.otb $HOME/.local/share/fonts/
 
 echo "
+foreground = black;
+background = white;
+font = Misc Fixed;
 
-foreground:black
-background:white
-font:Misc Fixed
+directory to choose music from = $HOME;
+logo2 directory = $HOME/.config/graphite/logo2.png;
+logo3 directory = $HOME/.config/graphite/logo3.png;
 
-directory to choose music from:$HOME
-logo2 directory:$HOME/.config/graphite/logo2.png
-logo3 directory:$HOME/.config/graphite/logo3.png
+send notifs on song play = 0;
 
-send notifs on song play:0
-
+dir x = 0;
+dir y = 215;
+play x = 35;
+play y = 215;
+vol x = 105;
+vol y = 215;
+passed x = 230;
+passed y = 222;
+artist x = 0;
+artist y = 13;
+song x = 0;
+song y = 0;
+status x = 220;
+status y = 0;
 " > ~/.config/graphite/graphite.conf
 
 echo "finished"
