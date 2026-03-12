@@ -19,15 +19,16 @@ app_path = home_path / '.config' / 'graphite'
 config_path = app_path / 'graphite.conf'
 playlist_path = app_path / 'playlist.conf'
 
-def read_settings():
+def read_from_config():
 	global _notifications
 	with open(config_path, 'r') as cfg:
 		for line in cfg:
-			if ':' not in line:
+			if (' = ' not in line and ';' not in line):
 				continue
-			key, value = line.split(':', 1)
+			key, value = line.split(' = ', 1)
 			key = key.strip()
-			value = value.strip()			
+			value = value.strip()
+			value = value.strip(';')
 		
 			if key == 'foreground':
 				_fg = str(value)
@@ -43,12 +44,40 @@ def read_settings():
 				_logo3_directory = value
 			elif key == 'send notifs on song play':
 				_notifications = int(value)
+			elif key == 'dir x':
+				_def_dirx = value
+			elif key == 'play x':
+				_def_playx = value
+			elif key == 'vol x':
+				_def_volx = value
+			elif key == 'passed x':
+				_def_passedx = value
+			elif key == 'artist x':
+				_def_artistx = value
+			elif key == 'song x':
+				_def_songx = value
+			elif key == 'status x':
+				_def_statusx = value
+			elif key == 'dir y':
+				_def_diry = value
+			elif key == 'play y':
+				_def_playy = value
+			elif key == 'vol y':
+				_def_voly = value
+			elif key == 'passed y':
+				_def_passedy = value
+			elif key == 'artist y':
+				_def_artisty = value
+			elif key == 'song y':
+				_def_songy = value
+			elif key == 'status y':
+				_def_statusy = value
 
-	return _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory
+	return _def_dirx, _def_playx, _def_songx, _def_volx, _def_passedx, _def_artistx, _def_statusx, _def_diry, _def_playy, _def_songy, _def_voly, _def_passedy, _def_artisty, _def_statusy, _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory
 
 try:
 
-	_fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory = read_settings()
+	_def_dirx, _def_playx, _def_songx, _def_volx, _def_passedx, _def_artistx, _def_statusx, _def_diry, _def_playy, _def_songy, _def_voly, _def_passedy, _def_artisty, _def_statusy, _fg, _bg, _fnt, _music_user_directory, _logo2_directory, _logo3_directory = read_from_config()
 
 except UnboundLocalError:
 
@@ -60,7 +89,26 @@ except UnboundLocalError:
 	_logo3_directory = Path.home() / '.config' / 'graphite' / 'logo3.png'
 	_notifications = 0
 
-gver = 'graphite [1.4]' # graphite version
+	_def_dirx = 0
+	_def_playx = 35
+	_def_volx = 105
+	_def_passedx = 230
+	_def_artistx = 0
+	_def_songx = 0
+	_def_statusx = 220
+
+	_def_diry = 215
+	_def_playy = 215
+	_def_voly = 215
+	_def_passedy = 223
+	_def_artisty = 13
+	_def_songy = 0
+	_def_statusy = 0
+
+_graphite_version = 'graphite [1.4]' # graphite version
+
+# greet message
+print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
 
 # declare important variables
 
@@ -78,7 +126,7 @@ _cur_inx = 0						#the current song number, use it like "str(_sng_lst[_cur_inx])
 _art_nme = None
 _repeat = False
 _shuffle = False
-ttag = None
+_tinytag = None
 _ui_state = 2
 
 _dos = Tk()						#sets window
@@ -104,7 +152,7 @@ def display_logo(lgo):
 	_cur_logo = lgo
 
 	cover = Image.open(lgo)
-	cover = cover.resize((cover_w, cover_h), Image.Resampling.LANCZOS)
+	cover = cover.resize((cover_w, cover_h), Image.Resampling.BILINEAR)
 	cover = ImageTk.PhotoImage(cover)
 	cover_label.config(image=cover)
 	cover_label.image = cover
@@ -143,15 +191,15 @@ vol_button = Label(_dos,text=str(_glb_vol),font=_fnt,fg=_fg,cursor='hand2',bg=_b
 passed_label = Label(_dos,text='00:00/00:00',fg=_fg,bg=_bg,font=_fnt,cursor='hand2')
 artist_label = Label(_dos,text='',fg=_fg,bg=_bg,font=_fnt)
 _song_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
-repeat_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
+status_label = Label(_dos,fg=_fg,bg=_bg,text='',font=_fnt)
 
-dir_label.place(x=0,y=215)
-play_button.place(x=35,y=215)
-vol_button.place(x=105,y=215)
-passed_label.place(x=230,y=224,anchor='e')
-_song_label.place(x=0,y=0)
-artist_label.place(x=0,y=13)
-repeat_label.place(x=220,y=0)
+dir_label.place(x=_def_dirx,y=_def_diry)
+play_button.place(x=_def_playx,y=_def_playy)
+vol_button.place(x=_def_volx,y=_def_voly)
+passed_label.place(x=_def_passedx,y=_def_passedy,anchor='e')
+_song_label.place(x=_def_songx,y=_def_songy)
+artist_label.place(x=_def_artistx,y=_def_artisty)
+status_label.place(x=_def_statusx,y=_def_statusy) # statusy (+o+)
 
 def filex(thing):
 	global _fg, _bg, _fnt
@@ -181,7 +229,7 @@ def filex(thing):
 	_return.bind('<Leave>', lambda event: _return.config(fg=_fg))
 	_return.bind('<Button-1>', lambda event: retur())
 	
-	_ok = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="ok",cursor='hand2')
+	_ok = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="aight",cursor='hand2')
 	_ok.place(x=25,y=5)
 	_ok.bind('<Enter>', lambda event: _ok.config(fg='grey'))
 	_ok.bind('<Leave>', lambda event: _ok.config(fg=_fg))
@@ -245,7 +293,6 @@ def filex(thing):
 
 			_place_info = i.place_info()
 			_dos2.geometry(f'450x{int(_place_info['y']) + 22}')
-
 			offset_y += 15
 
 		offset_y = 0
@@ -319,6 +366,10 @@ def get_files(button,playlist):
 			_hvr = False
 			_pus = False
 			_cur_inx = 0
+
+			for f in _sng_lst:
+				print(f"{f}")
+
 		else:
 			_sng_lst = []
 			_sel_sng = None
@@ -357,8 +408,8 @@ def play_this_song():
 		_ply = True
 		_sng_raw_nme, file_extension = os.path.splitext(str(os.path.basename(_sel_sng)))
 
-		ttag = TinyTag.get(str(_sel_sng))
-		_art_nme = ttag.artist
+		_tinytag = TinyTag.get(str(_sel_sng))
+		_art_nme = _tinytag.artist
 		artist_label.config(text=str(_art_nme.lower()))
 		_song_label.config(text=str(_sng_raw_nme.lower()))
 		_dos.title(f'{_sng_raw_nme.lower()}')
@@ -481,13 +532,13 @@ def hide_ui():
 
 		display_logo(_cur_logo)
 
-		dir_label.place(x=0,y=215)
-		play_button.place(x=35,y=215)
-		vol_button.place(x=105,y=215)
-		passed_label.place(x=230,y=224,anchor='e')
-		_song_label.place(y=0)
-		artist_label.place(y=13)
-		repeat_label.place(y=0)
+		dir_label.place(x=_def_dirx,y=_def_diry)
+		play_button.place(x=_def_playx,y=_def_playy)
+		vol_button.place(x=_def_volx,y=_def_voly)
+		passed_label.place(x=_def_passedx,y=_def_passedy,anchor='e')
+		_song_label.place(y=_def_songy)
+		artist_label.place(y=_def_artisty)
+		status_label.place(y=_def_statusy)
 
 		_ui_state = 2
 	elif _ui_state == 2:
@@ -509,7 +560,7 @@ def hide_ui():
 		passed_label.place(x=115,y=224,anchor='c')
 		_song_label.place(y=1000)
 		artist_label.place(y=1000)
-		repeat_label.place(y=1000)
+		status_label.place(y=1000)
 		_ui_state = 6
 	elif _ui_state == 6:
 		passed_label.place(y=1000)
@@ -532,20 +583,20 @@ def switch_r(event):
 	_shuffle = False
 	if _repeat == False:
 		_repeat = True
-		repeat_label.config(text='R')
+		status_label.config(text='R')
 	elif _repeat == True:
 		_repeat = False
-		repeat_label.config(text=' ')
+		status_label.config(text=' ')
 def switch_s(event):
 	global _repeat, _shuffle
 
 	_repeat = False
 	if _shuffle == False:
 		_shuffle = True
-		repeat_label.config(text='S')
+		status_label.config(text='S')
 	elif _shuffle == True:
 		_shuffle = False
-		repeat_label.config(text=' ')
+		status_label.config(text=' ')
 
 dir_label.bind('<Button-1>', lambda event: get_files(1,False))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
