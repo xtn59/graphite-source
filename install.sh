@@ -11,7 +11,7 @@ if [[ $issu == "root" ]]; then
 	exit
 fi
 
-read -p "[y/anything] install pip dependencies?" pip
+read -p "[y/anything] install pip dependencies? " pip
 
 if [[ $pip == "y" ]]; then
 	echo "installing dependencies with pip..."
