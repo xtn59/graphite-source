@@ -21,7 +21,9 @@ fi
 echo "making directories and copying files..."
 
 mkdir -p ~/.config/graphite
+mkdir -p ~/.config/graphite/playlists
 touch ~/.config/graphite/graphite.conf
+touch ~/.config/graphite/playlists/graphite.pl
 cp -r *.png ~/.config/graphite/
 echo "you may be prompted with sudo. it only copies files, don't worry."
 sudo cp -r graphite /bin/
