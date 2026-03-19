@@ -14,14 +14,18 @@ subprocess.run('clear')
 pygame.init()
 pygame.mixer.init()
 
-home_path = Path.home()
-app_path = home_path / '.config' / 'graphite'
-config_path = app_path / 'graphite.conf'
-playlist_path = app_path / 'playlist.conf'
+# these are earlier created with install.sh
+# i lowkey had a mini heart attack, thinking these weren't created by default
+# i'm dumb
+
+_home = Path.home()
+_graphite = _home / '.config' / 'graphite'
+_config = _graphite / 'graphite.conf'
+_playlist_folder = _graphite / 'playlists'
 
 def read_from_config():
 	global _notifications
-	with open(config_path, 'r') as cfg:
+	with open(_config, 'r') as cfg:
 		for line in cfg:
 			if (' = ' not in line and ';' not in line):
 				continue
@@ -85,8 +89,8 @@ except UnboundLocalError:
 	_bg = 'blue'
 	_fnt = ('misc fixed', 10)
 	_music_user_directory = Path.home()
-	_logo2_directory = Path.home() / '.config' / 'graphite' / 'logo2.png'
-	_logo3_directory = Path.home() / '.config' / 'graphite' / 'logo3.png'
+	_logo3_directory = Path.home() / '.config' / 'graphite' / 'logo2.png'
+	_logo2_directory = Path.home() / '.config' / 'graphite' / 'logo3.png'
 	_notifications = 0
 
 	_def_dirx = 0
@@ -105,9 +109,10 @@ except UnboundLocalError:
 	_def_songy = 0
 	_def_statusy = 0
 
-_graphite_version = 'graphite [1.5.1]' # graphite version
+_graphite_version = 'graphite [1.6]' # graphite version
 
 # greet message
+
 print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
 
 # declare important variables
@@ -128,15 +133,19 @@ _shuffle = False
 _tinytag = None
 _ui_state = 2
 
-_dos = Tk()						#sets window
-_dos.geometry(str(start_geo))				#sets starting geometry
-_dos.title('graphite')					#sets window title to graphite	
-icon = PhotoImage(file=f'{_logo2_directory}')		#sets icon to graph_logo2.png from graphite-app folder. you can put your image here.
-_dos.iconphoto(True,icon)				#sets window logo to icon
-_dos.config(background=_bg)				#sets window background to standard background, at the start it is 'white'
-_dos.resizable(False,False)				#you cannot resize _dos when this is uncommented.
-							#^if you are using a wayland compositor like hyprland or any other wm that automatically tiles windows,
-							#^set it to false. its gonna keep it always floating. (or just set a window rule in your compositor)
+_dos = Tk()						# sets window
+_dos.geometry(str(start_geo))				# sets starting geometry
+_dos.title('graphite')					# sets window title to graphite	
+icon = PhotoImage(file=f'{_logo2_directory}')		# sets icon to graph_logo2.png from graphite-app folder. you can put your image here.
+_dos.iconphoto(True,icon)				# sets window logo to icon
+_dos.config(background=_bg)				# sets window background to standard background, at the start it is 'white'
+_dos.resizable(False,False)				# you cannot resize _dos when this is uncommented.
+							# ^if you are using a wayland compositor like hyprland or any other wm that automatically tiles windows,
+							# ^set it to false. its gonna keep it always floating. or just set a window rule in your 
+							# compositor.
+							# fuck graphite
+
+# width, xaxis, height, yaxis
 
 cover_w = 160
 cover_x = 35
@@ -170,19 +179,10 @@ def song_time():
 		passed_label.config(text=to_print)
 	_dos.after(80,song_time)
 
-def write_topl(file):
-
-	if os.path.isdir(file) == False:
-		with open(playlist_path, 'a') as p:
-			p.write(f"\n{file}")
-		print(f"writing {file} --> {playlist_path}")
-	else:
-		print(f"cannot write, {file} is a directory.")
-
 song_time()
 display_logo(_logo)
 
-#nvm. fuck rel coords
+# or not, idk
 
 dir_label = Label(_dos,text='file',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
 play_button = Label(_dos,text='play/stop',font=_fnt,fg=_fg,cursor='hand2',bg=_bg)
@@ -198,120 +198,17 @@ vol_button.place(x=_def_volx,y=_def_voly)
 passed_label.place(x=_def_passedx,y=_def_passedy,anchor='e')
 _song_label.place(x=_def_songx,y=_def_songy)
 artist_label.place(x=_def_artistx,y=_def_artisty)
-status_label.place(x=_def_statusx,y=_def_statusy) # statusy (+o+)
+status_label.place(x=_def_statusx,y=_def_statusy)
 
-def filex(_filex_path):
-	global _fg, _bg, _fnt
+def file_exists(file):
+	if os.path.exists(file) == True:
+		return True
+	elif os.path.exists(file) == False:
+		print(f"error: file does not exist.\n^ {file}")
+		return False
 
-	_cur_dir = get_listening_dir()
-
-	if _cur_dir != None:
-		_filex_path = _cur_dir
-	else:
-		pass
-
-	_conf_path = Path.home() / '.config' / 'graphite' / 'graphite.conf'
-	_shdots = False
-	_label_lst = []
-
-	_dos2 = Toplevel(_dos)
-	_dos2.geometry("450x350")
-	_dos2.resizable(False,False)
-	_dos2.config(bg=_bg)
-
-#	Had issues with dir_label
-#	_dos2.grab_set()
-
-	_return = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="<-",cursor='hand2')
-	_return.place(x=5,y=5)
-	_return.bind('<Enter>', lambda event: _return.config(fg='grey'))
-	_return.bind('<Leave>', lambda event: _return.config(fg=_fg))
-	_return.bind('<Button-1>', lambda event: retur())
-	
-	_ok = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="aight",cursor='hand2')
-	_ok.place(x=25,y=5)
-	_ok.bind('<Enter>', lambda event: _ok.config(fg='grey'))
-	_ok.bind('<Leave>', lambda event: _ok.config(fg=_fg))
-	_ok.bind('<Button-1>', lambda event: end_file())	
-
-	def end_file():
-		_dos2.destroy()
-	
-	def retur():
-		nonlocal _filex_path
-		_filex_path = os.path.dirname(_filex_path)
-		shfiles()
-	
-	def shdots():
-		nonlocal _shdots
-
-		if _shdots == True:
-			_shdots = False
-		elif _shdots == False:
-			_shdots = True
-
-		shfiles()
-	
-	def shfiles():
-		nonlocal _label_lst, _shdots, _filex_path
-
-		_dos2.title(f'{_filex_path}')
-
-		if _shdots == False:
-			_file_lst = sorted([f for f in os.listdir(_filex_path) if not f.startswith('.')])
-		else:
-			_file_lst = sorted([f for f in os.listdir(_filex_path)])
-			
-		offset_y = 20
-	
-		if len(_label_lst) > 0:
-			for i in _label_lst:
-				i.destroy()
-	
-			_label_lst.clear()
-	
-		def change_path(path,file):
-			nonlocal _filex_path
-
-			if os.path.isdir(os.path.join(_filex_path, file)) == True:
-				_filex_path = path
-				shfiles()
-			else:
-				print('not a directory')
-	
-		for f in _file_lst:
-			_file_label = Label(_dos2, text=f,bg=_bg,fg=_fg,font=_fnt,cursor='hand2')
-			_label_lst.append(_file_label)
-		
-		for i in _label_lst:
-			i.place(x=10,y=(10 + offset_y))
-			i.bind('<Enter>', lambda event, it=i: it.config(fg='grey'))
-			i.bind('<Leave>', lambda event, it=i: it.config(fg=_fg))
-			i.bind('<Button-1>', lambda event, it=i: change_path(os.path.join(_filex_path, it.cget('text')), str(it.cget('text'))))
-			i.bind('<Button-3>', lambda event, it=i: write_topl(os.path.join(_filex_path, it.cget('text'))))
-
-			_place_info = i.place_info()
-			_dos2.geometry(f'450x{int(_place_info['y']) + 22}')
-			offset_y += 15
-
-		offset_y = 0
-		_file_lst = []
-	
-	shfiles()
-	_dos2.bind('<period>', lambda event: shdots())
-	_dos.wait_window(_dos2)
-	return _filex_path
-
-def get_listening_dir():
-	try:
-		dirname = os.path.dirname(_sng_lst[_cur_inx].strip())
-		return dirname
-	except IndexError:
-		dirname = None
-		return dirname
-
-def get_files(button,playlist):
-	global _sel_sng,_sng_lst,_cur_inx,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,app_path,cover_w,cover_h,_music_user_directory,cover_path,_notifications
+def get_files(button,playlist,plfile):
+	global _sel_sng,_sng_lst,_cur_inx,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,_graphite,cover_w,cover_h,_music_user_directory,cover_path,_notifications
 
 	if playlist == False:
 		if button == 1:
@@ -319,13 +216,12 @@ def get_files(button,playlist):
 			if _music_user_directory.startswith("~"):
 				_music_user_directory = _music_user_directory.replace("~", f"{Path.home()}", 1)
 
-			path = filex(_music_user_directory)
+			path = filex(_music_user_directory,False)
 
 			if _music_user_directory == path:
 				return
 			elif _sel_sng != None and os.path.dirname(_sel_sng) == path:
 				return
-
 		elif button == 0:
 			path = os.getcwd()
 		elif button == 5: 
@@ -334,6 +230,8 @@ def get_files(button,playlist):
 					path = i.split("--dir=")[1]
 					if path.startswith('~') == True:
 						path = path.replace("~", f"{Path.home()}", 1)
+	subprocess.run("clear")
+
 	files = []
 	files_cover = []
 
@@ -342,39 +240,50 @@ def get_files(button,playlist):
 			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
 			files_cover = [f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))]
 	else:
-		#This will allow us to read the specific and absolute paths of a file from ~/.config/graphite/playlist.conf
+		#This will allow us to read the paths of songs from the user's selected playlist.
 		#The user can right click on a file in filex to add it to the playlist.
 
-		with open(playlist_path, 'r') as f:
+		with open(plfile, 'r') as f:
 			for line in f:
 				lne = (str(line)).strip('\n')
 				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
-					files.append(lne)
+					if file_exists(lne):
+						files.append(lne)
 				elif lne.endswith(('.jpg','.png')):
-					files_cover.append(lne)
+					if file_exists(lne):
+						files_cover.append(lne)
 
 	try:
 		if files:
 			if playlist == False:
 				_sng_lst = [os.path.join(path, f) for f in files]
 			else:
-				_sng_lst = files			
-			_cur_inx = 0
-			_sel_sng = _sng_lst[_cur_inx]
-			_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
-			pygame.mixer.music.stop()
-			_pus = False
+				_sng_lst = files
+			if len(_sng_lst) > 0:
+				_cur_inx = 0
+				_sel_sng = _sng_lst[_cur_inx]
+				_sng_raw_nme, file_extension = os.path.splitext(os.path.basename(_sel_sng))
+				pygame.mixer.music.stop()
+				_pus = False
 
-			for f in _sng_lst:
-				print(f"{f}")
+				_tinytag = TinyTag.get(_sel_sng)
+				print(f"{_tinytag.year} - {_tinytag.album} by {_tinytag.artist}")
 
+				for f in _sng_lst:
+					if playlist == True:
+						print(f"p       {os.path.basename(f)}")
+					else:
+						print(f"\t{os.path.basename(f)}")
+			else:
+				printf("error: no songs in song list.")
 		else:
 			_cur_inx = 0
 			_sng_lst = []
 			_sel_sng = None
-			_song_label.config(text='no files given')
+			_song_label.config(text='no songs')
 			pygame.mixer.music.stop()
 			_pus = False
+
 	except Exception as e:
 		print(f"error: {e}")
 
@@ -395,6 +304,183 @@ def get_files(button,playlist):
 
 	update_ply_info()
 
+def filex(_filex_path,playlist):
+	global _fg, _bg, _fnt, _playlist_folder
+
+	_cur_dir = get_listening_dir()
+	if playlist == False:
+		if _cur_dir != None:
+			_filex_path = _cur_dir
+	else:
+		_cur_dir = _filex_path
+	_pl_to_return = "graphite"
+	_dosw = 350
+	_dosh = 450
+	_shdots = False
+	_label_lst = []
+
+	if _cur_dir != None:
+		_filex_path = _cur_dir
+	else:
+		pass
+
+	_dos2 = Toplevel(_dos)
+	_dos2.geometry(f"{_dosw}x{_dosh}")
+	_dos2.resizable(False,False)
+	_dos2.config(bg=_bg)
+
+	if playlist == False:
+	
+		_return = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="<-",cursor='hand2')
+		_return.place(x=5,y=5)
+		_return.bind('<Enter>', lambda event: _return.config(fg='grey'))
+		_return.bind('<Leave>', lambda event: _return.config(fg=_fg))
+		_return.bind('<Button-1>', lambda event: retur())
+	
+		_ok = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="ok",cursor='hand2')
+		_ok.place(x=25,y=5)
+		_ok.bind('<Enter>', lambda event: _ok.config(fg='grey'))
+		_ok.bind('<Leave>', lambda event: _ok.config(fg=_fg))
+		_ok.bind('<Button-1>', lambda event: end_filex(False,None))
+
+		_new = Label(_dos2,fg=_fg,bg=_bg,font=_fnt,text="new",cursor='hand2')
+		_new.place(x=45,y=5)
+		_new.bind('<Enter>', lambda event: _new.config(fg='grey'))
+		_new.bind('<Leave>', lambda event: _new.config(fg=_fg))
+		_new.bind('<Button-1>', lambda event: make_playlist())
+
+		_ent = Entry(_dos2,fg=_fg,bg=_bg,bd=0,highlightcolor=_fg,highlightbackground=_fg,font=_fnt)
+
+	def create_playlist():
+		nonlocal _filex_path, _ent
+
+		_playlist_name = str(_ent.get())
+		if _playlist_name != None:
+			subprocess.run([f'touch \"{os.path.join(_filex_path, _playlist_name)}\"'], shell=True)
+			print(f"created file at;   {os.path.join(_filex_path, _playlist_name)}")
+		_ent.place(y=10000)
+		_ent.delete(0, END)
+		_dos2.title(f"{_filex_path}")
+		shfiles()
+
+	def make_playlist():
+		nonlocal _filex_path, _dosh, _ent
+
+		_filex_path = _playlist_folder
+		shfiles()
+		_dos2.title(f"creating playlist at {_filex_path}")
+		_ent.place(x=(_dosw / 2) - 50,y=(_dosh / 2) - 10,width=100,height=20)
+		_ent.bind('<Return>', lambda event: create_playlist())
+
+	def end_filex(playlist,plname):
+		nonlocal _pl_to_return
+		if playlist == True:
+			_pl_to_return = plname
+		_dos2.destroy()
+
+	def retur():
+		nonlocal _filex_path
+		_filex_path = os.path.dirname(_filex_path)
+		shfiles()
+	
+	def shdots():
+		nonlocal _shdots
+
+		if _shdots == True:
+			_shdots = False
+		elif _shdots == False:
+			_shdots = True
+
+		shfiles()
+	
+	def shfiles():
+		nonlocal _label_lst, _shdots, _filex_path, _dosh, playlist
+
+		if playlist == False:
+			offset_y = 20
+			_dos2.title(f'{_filex_path}')
+		elif playlist == True:
+			offset_y = 0
+			_dos2.title("choose a playlist")
+
+		if _shdots == False:
+			_file_lst = sorted([f for f in os.listdir(_filex_path) if not f.startswith('.')])
+		else:
+			_file_lst = sorted([f for f in os.listdir(_filex_path)])
+
+		if len(_label_lst) > 0:
+			for i in _label_lst:
+				i.destroy()
+	
+			_label_lst.clear()
+	
+		def change_path(path,file):
+			nonlocal _filex_path
+
+			if os.path.isdir(os.path.join(_filex_path, file)) == True:
+				_filex_path = path
+				shfiles()
+			else:
+				print('not a directory')
+	
+		for f in _file_lst:
+			_file_label = Label(_dos2, text=f,fg=_fg,bg=_bg,font=_fnt,cursor='hand2')
+			_label_lst.append(_file_label)
+		
+		for i in _label_lst:
+			i.place(x=10,y=(10 + offset_y))
+			i.bind('<Enter>', lambda event, it=i: it.config(fg='grey'))
+			i.bind('<Leave>', lambda event, it=i: it.config(fg=_fg))
+			if playlist == False:
+				i.bind('<Button-1>', lambda event, it=i: change_path(os.path.join(_filex_path, it.cget('text')), str(it.cget('text'))))
+				if str(i.cget('text')).endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac','.png','.jpg')):
+					i.bind('<Button-3>', lambda event, it=i: write_topl(os.path.join(_filex_path, it.cget('text'))))
+			else:
+				i.bind('<Button-1>', lambda event, it=i: end_filex(True, str(os.path.join(_filex_path, it.cget('text')))))
+
+			_place_info = i.place_info()
+			_dos2.geometry(f'{_dosw}x{int(_place_info['y']) + 22}')
+			_dosh = (int(_place_info['y']) + 22)
+			offset_y += 15
+
+		offset_y = 0
+		_file_lst = []
+	
+	shfiles()
+	_dos2.bind('<period>', lambda event: shdots())
+	_dos.wait_window(_dos2)
+	if playlist == False:
+		return _filex_path
+	elif playlist == True:
+		return _pl_to_return
+
+def get_listening_dir():
+	try:
+		dirname = os.path.dirname(_sng_lst[_cur_inx].strip())
+		return dirname
+	except IndexError:
+		dirname = None
+		return dirname
+
+def pl_menu(playit):
+	global _playlist_folder
+	playlisterer = filex(_playlist_folder,True)
+	if playlisterer == None:
+		return None
+	if playit == True:
+		get_files(0,True,playlisterer)
+	return playlisterer
+
+def write_topl(file):
+	global _playlist_folder
+	if os.path.isdir(file) == False:
+
+		_which_pl = pl_menu(False)
+		with open(_which_pl, 'a') as p:
+			p.write(f"\n{file}")
+		print(f"writing {file} --> {_which_pl}")
+	else:
+		print(f"cannot write, {file} is a directory.")
 
 def play_this_song():
 	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, _notifications, cover_path
@@ -573,7 +659,7 @@ def switch_state(event,state):
 			_shuffle = False
 			status_label.config(text=' ')
 
-dir_label.bind('<Button-1>', lambda event: get_files(1,False))
+dir_label.bind('<Button-1>', lambda event: get_files(1,False,None))
 dir_label.bind('<Enter>', lambda event: dir_label.config(fg='grey'))
 dir_label.bind('<Leave>', lambda event: dir_label.config(fg=_fg))
 play_button.bind('<Button-1>',play_button_)
@@ -585,14 +671,14 @@ vol_button.bind('<Enter>', lambda event: vol_button.config(fg='grey'))
 vol_button.bind('<Leave>', lambda event: vol_button.config(fg=_fg))
 passed_label.bind('<Enter>', lambda event: passed_label.config(fg='grey'))
 passed_label.bind('<Leave>', lambda event: passed_label.config(fg=_fg))
-_dos.bind('<Tab>', lambda event: get_files(1,False))
+_dos.bind('<Tab>', lambda event: get_files(1,False,None))
 _dos.bind('<space>', play_button_)
 _dos.bind('<Up>', lambda event: vol_click(None,0))
 _dos.bind('<Down>', lambda event: vol_click(None,1))
 _dos.bind('<Right>', lambda event: skip_click(None,"forward"))
 _dos.bind('<Left>', lambda event: skip_click(None,"back"))
 _dos.bind('<KeyPress-g>', lambda event: hide_ui())
-_dos.bind('<KeyPress-p>', lambda event: get_files(1,True))
+_dos.bind('<KeyPress-p>', lambda event: pl_menu(True))
 _dos.bind('<KeyPress-r>', lambda event: switch_state(None,"repeat"))
 _dos.bind('<KeyPress-s>', lambda event: switch_state(None,"shuffle"))
 
@@ -624,9 +710,10 @@ if len(sys.argv) > 1:
 			switch_r(None)
 	
 	if _get == 1:
-		get_files(5,False)
+		get_files(5,False,None)
 	else:
-		get_files(0,False)
+		get_files(0,False,None)
 
 update_ply_info()
 _dos.mainloop()
+
