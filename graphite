@@ -118,8 +118,13 @@ print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
 # declare important variables
 
 start_geo = "230x230"
-_logo = f'{_logo2_directory}'
-_cur_logo = f'{_logo2_directory}'
+if _bg == "white":
+	_logo = f'{_logo3_directory}'
+	_cur_logo = f'{_logo3_directory}'
+else:
+	_logo = f'{_logo2_directory}'
+	_cur_logo = f'{_logo2_directory}'
+
 _glb_vol = Decimal('1.00')
 _sel_sng = None
 _pus = False
