@@ -710,9 +710,9 @@ if len(sys.argv) > 1:
 			_music_user_directory = i.split("--dir=")[1]
 			_get = 1
 		elif i == "--shuffle":
-			switch_s(None)
+			switch_state(None, "shuffle")
 		elif i == "--repeat":
-			switch_r(None)
+			switch_state(None, "repeat")
 	
 	if _get == 1:
 		get_files(5,False,None)
