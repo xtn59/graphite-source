@@ -24,15 +24,16 @@ mkdir -p ~/.config/graphite
 mkdir -p ~/.config/graphite/playlists
 touch ~/.config/graphite/graphite.conf
 touch ~/.config/graphite/playlists/graphite.pl
-cp -r *.png ~/.config/graphite/
+cp -r logo/*.png ~/.config/graphite/
 echo "you may be prompted with sudo. it only copies files, don't worry."
 sudo cp -r graphite /bin/
-sudo cp -r 6x13.otb $HOME/.local/share/fonts/
+sudo cp -r misc/6x13.otb $HOME/.local/share/fonts/
 
 echo "
 foreground = black;
 background = white;
 font = Misc Fixed;
+font size = 10;
 
 directory to choose music from = $HOME;
 logo2 directory = $HOME/.config/graphite/logo2.png;
