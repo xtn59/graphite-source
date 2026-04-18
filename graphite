@@ -22,19 +22,11 @@ _home = Path.home()
 _graphite = _home / '.config' / 'graphite'
 _config = _graphite / 'graphite.conf'
 _playlist_folder = _graphite / 'playlists'
+_status_file = _graphite / 'status.txt'
 
-
-
-# Uncomment these for a nice integration, for you bar
-# a command in your terminal, whatever really
-
-#_status_file = _graphite / 'status.txt'
-#def modifyStatus(nowplaying):
-#	with open(_status_file, 'w') as stat:
-#		stat.write(f'{nowplaying}\n')
-
-
-
+def modifyStatus(nowplaying):
+	with open(_status_file, 'w') as stat:
+		stat.write(f'{nowplaying}\n')
 
 def readFromConfig():
 	global _notifications
@@ -227,11 +219,15 @@ status_label.place(x=_def_statusx,y=_def_statusy)
 
 def extractCover():
 	global _cur_album, _sel_sng
+	log = 0 # log this function. VERY useful
 
 	tinys = TinyTag.get(_sel_sng)
 	foundfile = 0
 
+	if log == 1: print(f"\033[1;31m curalbum   {_cur_album} \033[0m"); print(f"\033[1;31m tinys.al   {tinys.album} \033[0m")
+
 	def fLogo():
+		if log == 1: print(f"\033[1;31mEXECUTING FLOGO()...\033[0m")
 		try:
 			subprocess.run(["ffmpeg", "-y", "-i", _sel_sng, "-an:", "-c:v", "copy", "/tmp/graphite_cover.jpg"], stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
 			displayLogo("/tmp/graphite_cover.jpg")
@@ -239,20 +235,29 @@ def extractCover():
 			foundfile = 404
 
 	if (_cur_album != tinys.album):
+		if log == 1: print(f"\033[1;31m_cur_album != tinys.album   |   case 1\033[0m")
 		fLogo()
 	else:
-		for i in _sng_lst:
-			if (i.endswith('.png') or i.endswith('.jpg')):
-				print(f"{i} is about to be displayed")
-				displayLogo(i)
-				foundfile = 1
-		if foundfile == 0:
-			if (_cur_logo == _logo3_directory and _old_logo == _logo3_directory):
-				fLogo()
-			if foundfile == 404:
-				displayLogo(_logo3_directory)
-			else:
+		if log == 1: print(f"\033[1;31melse   |   case 2\033[0m")
+		if _cur_logo != "/tmp/graphite_cover.jpg":
+			for i in _sng_lst:
+				if log == 1: print(f"\033[1;31mfor i in _sng_lst   |   case 3\033[0m")
+				if (i.endswith('.png') or i.endswith('.jpg')):
+					print(f"{i} is about to be displayed")
+					displayLogo(i)
+					foundfile = 1
+
+			if foundfile == 0:
+				if log == 1: print(f"\033[1;31mfoundfile == 0   |   case 4\033[0m")
+				if (_cur_logo == _logo3_directory and _old_logo == _logo3_directory):
+					if log == 1: print(f"\033[1;31m_cur_logo == _logo3_directory and _old_logo == _logo3_directory   |   case 5\033[0m")
+					fLogo()
+				if foundfile == 404:
+					if log == 1: print(f"\033[1;31mfoundfile == 404   |   case 6\033[0m")
+					displayLogo(_logo3_directory)
+				else:
 					if (_cur_album != tinys.album):
+						if log == 1: print(f"\033[1;31m_cur_album != tinys.album   |   case 7\033[0m")
 						fLogo()
 
 def fileExists(file):
@@ -267,7 +272,6 @@ def getFiles(button,playlist,plfile):
 
 	if playlist == False:
 		if button == 1:
-
 			if _music_user_directory.startswith("~"):
 				_music_user_directory = _music_user_directory.replace("~", f"{Path.home()}", 1)
 
@@ -336,8 +340,9 @@ def getFiles(button,playlist,plfile):
 		print(f"error: {e}")
 
 	if len(_sng_lst) > 0:
-		_t = TinyTag.get(_sel_sng)
-		_cur_album = _t.album
+		if _cur_album == None:
+			_t = TinyTag.get(_sel_sng)
+			_cur_album = _t.album
 		extractCover()
 		playThisSong()
 
