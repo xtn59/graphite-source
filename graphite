@@ -9,37 +9,6 @@ from PIL import Image, ImageTk
 from pathlib import Path
 import time, pygame, os, subprocess, sys, random
 
-_arg_lst = []
-if len(sys.argv) > 1:
-	_get_files = 0
-
-	for i in sys.argv[1:]:
-		_arg_lst.append(i)
-
-	if "--help" in _arg_lst:
-		print("usage; graphite [--key=val]")
-		print("options;")
-		print("    --dir         [directory for music]")
-		print("    --shuffle     [immediately set shuffle on]")
-		print("    --repeat      [immediately set repeat on]")
-		print("    --help        [display this help and exit]\n")
-		sys.exit()
-
-	for i in _arg_lst:
-		if i.startswith("--dir="):
-			_music_user_directory = i.split("--dir=")[1]
-			_get_files = 1
-		elif i == "--shuffle":
-			switchState(None, "shuffle")
-		elif i == "--repeat":
-			switchState(None, "repeat")
-
-	if _get_files == 1:
-		getFiles(5,False,None)
-	else:
-		getFiles(0,False,None)
-
-
 subprocess.run('clear')
 
 pygame.init()
@@ -53,11 +22,19 @@ _home = Path.home()
 _graphite = _home / '.config' / 'graphite'
 _config = _graphite / 'graphite.conf'
 _playlist_folder = _graphite / 'playlists'
-_status_file = _graphite / 'status.txt'
 
-def modifyStatus(nowplaying):
-	with open(_status_file, 'w') as stat:
-		stat.write(f'{nowplaying}\n')
+
+
+# Uncomment these for a nice integration, for you bar
+# a command in your terminal, whatever really
+
+#_status_file = _graphite / 'status.txt'
+#def modifyStatus(nowplaying):
+#	with open(_status_file, 'w') as stat:
+#		stat.write(f'{nowplaying}\n')
+
+
+
 
 def readFromConfig():
 	global _notifications
@@ -146,7 +123,7 @@ except UnboundLocalError:
 	_def_songy = -50
 	_def_statusy = -50
 
-_graphite_version = 'graphite [1.6]' # graphite version
+_graphite_version = 'graphite [1.7]' # graphite version
 
 # greet message
 
@@ -158,9 +135,11 @@ start_geo = "230x230"
 if _bg == "white":
 	_logo = f'{_logo3_directory}'
 	_cur_logo = f'{_logo3_directory}'
+	_old_logo = f'{_logo3_directory}'
 else:
 	_logo = f'{_logo2_directory}'
 	_cur_logo = f'{_logo2_directory}'
+	_old_logo = f'{_logo2_directory}'
 
 _glb_vol = Decimal('1.00')
 _sel_sng = None
@@ -173,6 +152,8 @@ _art_nme = None
 _repeat = False
 _shuffle = False
 _tinytag = None
+_cur_album = None
+_cur_album = None
 _ui_state = 2
 
 _dos = Tk()						# sets window
@@ -198,7 +179,9 @@ cover_label = Label(_dos,takefocus=0,bg=_bg)
 cover_label.place(x=cover_x,y=cover_y)
 
 def displayLogo(lgo):
-	global _cur_logo
+	global _cur_logo, _old_logo
+
+	_old_logo = _cur_logo
 	_cur_logo = lgo
 
 	cover = Image.open(lgo)
@@ -242,6 +225,36 @@ _song_label.place(x=_def_songx,y=_def_songy)
 artist_label.place(x=_def_artistx,y=_def_artisty)
 status_label.place(x=_def_statusx,y=_def_statusy)
 
+def extractCover():
+	global _cur_album, _sel_sng
+
+	tinys = TinyTag.get(_sel_sng)
+	foundfile = 0
+
+	def fLogo():
+		try:
+			subprocess.run(["ffmpeg", "-y", "-i", _sel_sng, "-an:", "-c:v", "copy", "/tmp/graphite_cover.jpg"], stdout=subprocess.DEVNULL,stderr=subprocess.STDOUT)
+			displayLogo("/tmp/graphite_cover.jpg")
+		except Exception as e:
+			foundfile = 404
+
+	if (_cur_album != tinys.album):
+		fLogo()
+	else:
+		for i in _sng_lst:
+			if (i.endswith('.png') or i.endswith('.jpg')):
+				print(f"{i} is about to be displayed")
+				displayLogo(i)
+				foundfile = 1
+		if foundfile == 0:
+			if (_cur_logo == _logo3_directory and _old_logo == _logo3_directory):
+				fLogo()
+			if foundfile == 404:
+				displayLogo(_logo3_directory)
+			else:
+					if (_cur_album != tinys.album):
+						fLogo()
+
 def fileExists(file):
 	if os.path.exists(file):
 		return True
@@ -250,7 +263,7 @@ def fileExists(file):
 		return False
 
 def getFiles(button,playlist,plfile):
-	global _sel_sng,_sng_lst,_cur_inx,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,_graphite,cover_w,cover_h,_music_user_directory,cover_path,_notifications
+	global _sel_sng,_sng_lst,_cur_inx,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,_graphite,cover_w,cover_h,_music_user_directory,cover_path,_notifications, _cur_album
 
 	if playlist == False:
 		if button == 1:
@@ -274,12 +287,10 @@ def getFiles(button,playlist,plfile):
 	subprocess.run("clear")
 
 	files = []
-	files_cover = []
 
 	if playlist == False:
 		if path:
 			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-			files_cover = [f for f in os.listdir(path) if f.lower().endswith(('.jpg','.png'))]
 	else:
 		#This will allow us to read the paths of songs from the user's selected playlist.
 		#The user can right click on a file in filex to add it to the playlist.
@@ -290,10 +301,6 @@ def getFiles(button,playlist,plfile):
 				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
 					if fileExists(lne):
 						files.append(lne)
-				elif lne.endswith(('.jpg','.png')):
-					if fileExists(lne):
-						files_cover.append(lne)
-
 	try:
 		if files:
 			if playlist == False:
@@ -316,7 +323,7 @@ def getFiles(button,playlist,plfile):
 					else:
 						print(f"\t{os.path.basename(f)}")
 			else:
-				printf("error: no songs in song list.")
+				print("error: no songs in song list.")
 		else:
 			_cur_inx = 0
 			_sng_lst = []
@@ -328,19 +335,10 @@ def getFiles(button,playlist,plfile):
 	except Exception as e:
 		print(f"error: {e}")
 
-	if files_cover:
-		if playlist == False:
-			cover_file = os.path.join(path, files_cover[0])
-		else:
-			cover_file = str(files_cover[0]).strip()
-		try:
-			displayLogo(cover_file)
-		except Exception as e:
-			pass
-	else:
-		displayLogo(_logo2_directory)
-	
 	if len(_sng_lst) > 0:
+		_t = TinyTag.get(_sel_sng)
+		_cur_album = _t.album
+		extractCover()
 		playThisSong()
 
 	updateInformation()
@@ -524,7 +522,7 @@ def modifyFile(file, mode, content):
 		print(f"cannot write, {file} is a directory.")
 
 def playThisSong():
-	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, _notifications, cover_path
+	global _pus, _ply, _cur_inx, file_extension, _sng_raw_nme, song_path, _notifications, cover_path, _cur_album
 	if _sel_sng:
 		pygame.mixer.music.load(_sel_sng)
 		pygame.mixer.music.set_volume(float(_glb_vol))
@@ -559,8 +557,8 @@ def playEvent(event=None):
 			_song_label.config(text='no files given')
 			return
 		else:
+			extractCover()
 			playThisSong()
-
 
 def volumeEvent(event,incdec):
 	global _glb_vol,vol_button
@@ -577,42 +575,62 @@ def volumeEvent(event,incdec):
 			vol_button.config(text=str(_glb_vol))
 
 def skipEvent(event,state):
-	global _glb_vol, _cur_inx, _sel_sng
+	global _glb_vol, _cur_inx, _sel_sng, _cur_album
 	if state == "back":
 		if _cur_inx - 1 >= 0:
+			_t = TinyTag.get(_sel_sng)
+			_cur_album = _t.album
 			_cur_inx -= 1
 			_sel_sng = _sng_lst[_cur_inx]
+			extractCover()
 			playThisSong()
 	elif state == "forward":
 		if _cur_inx + 1 < len(_sng_lst):
+			_t = TinyTag.get(_sel_sng)
+			_cur_album = _t.album
 			_cur_inx += 1
 			_sel_sng = _sng_lst[_cur_inx]
+			extractCover()
 			playThisSong()
 
 def updateInformation():
 	global _ply, _pus, _sel_sng, _cur_inx, _sng_lst, play, _ply_info, _art_nme
 
-	if _ply:
-		if pygame.mixer.music.get_busy():
-			pass
-		elif not _pus:
-			if _repeat == True:
-				_sel_sng = _sng_lst[_cur_inx]
-				playThisSong()
-			else:
-				if _cur_inx + 1 < len(_sng_lst):
-					_cur_inx += 1
+	try:
+		if _ply:
+			if pygame.mixer.music.get_busy():
+				pass
+			elif not _pus:
+				if _repeat == True:
+					_cur_album = _sel_sng
 					_sel_sng = _sng_lst[_cur_inx]
+					extractCover()
 					playThisSong()
 				else:
-					_cur_inx = 0
-					_sel_sng = _sng_lst[_cur_inx]
+					if _cur_inx + 1 < len(_sng_lst):
+						_t = TinyTag.get(_sel_sng)
+						_cur_album = _t.album
+						_cur_inx += 1
+						_sel_sng = _sng_lst[_cur_inx]
+						extractCover()
+						playThisSong()
+					else:
+						_t = TinyTag.get(_sel_sng)
+						_cur_album = _t.album
+						_cur_inx = 0
+						_sel_sng = _sng_lst[_cur_inx]
+						extractCover()
+						playThisSong()
+				if _shuffle == True:
+					random_number = random.randint(0,len(_sel_sng))
+					_cur_album = _sel_sng
+					_sel_sng = _sng_lst[random_number]
+					_cur_inx = random_number
+					extractCover()
 					playThisSong()
-			if _shuffle == True:
-				random_number = random.randint(0,len(_sel_sng))
-				_sel_sng = _sng_lst[random_number]
-				_cur_inx = random_number
-				playThisSong()
+			
+	except Exception as e:
+		print(f"err: {e}")
 
 	if _ply == True:
 		play_button.config(text='stop')
@@ -723,6 +741,37 @@ _dos.bind('<KeyPress-g>', lambda event: changeUiState())
 _dos.bind('<KeyPress-p>', lambda event: playlistMenu(True))
 _dos.bind('<KeyPress-r>', lambda event: switchState(None,"repeat"))
 _dos.bind('<KeyPress-s>', lambda event: switchState(None,"shuffle"))
+
+_arg_lst = []
+if len(sys.argv) > 1:
+	_get_files = 0
+
+	for i in sys.argv[1:]:
+		_arg_lst.append(i)
+
+	if "--help" in _arg_lst:
+		print("usage; graphite [--key=val]")
+		print("options;")
+		print("    --dir         [directory for music]")
+		print("    --shuffle     [immediately set shuffle on]")
+		print("    --repeat      [immediately set repeat on]")
+		print("    --help        [display this help and exit]\n")
+		sys.exit()
+
+	for i in _arg_lst:
+		if i.startswith("--dir="):
+			_music_user_directory = i.split("--dir=")[1]
+			_get_files = 1
+		elif i == "--shuffle":
+			switchState(None, "shuffle")
+		elif i == "--repeat":
+			switchState(None, "repeat")
+
+	if _get_files == 1:
+		getFiles(5,False,None)
+	else:
+		getFiles(0,False,None)
+
 
 updateInformation()
 _dos.mainloop()

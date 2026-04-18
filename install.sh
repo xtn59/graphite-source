@@ -11,12 +11,9 @@ if [[ $issu == "root" ]]; then
 	exit
 fi
 
-read -p "[y/anything] install pip dependencies? " pip
-
-if [[ $pip == "y" ]]; then
-	echo "installing dependencies with pip..."
-	pip install -r requirements.txt --break-system-packages
-fi
+echo "installing dependencies with pip..."
+pip install -r misc/requirements.txt --break-system-packages --no-input
+pip uninstall tk pillow --break-system-packages --no-input
 
 echo "making directories and copying files..."
 
@@ -56,6 +53,9 @@ song y = 0;
 status x = 220;
 status y = 0;
 " > ~/.config/graphite/graphite.conf
+
+echo "you need to install - tk, python-pillow - manually, in your package manager."
+echo "^ this is very important. please do so, otherwise graphite wont bother to start!!!!!!"
 
 echo "finished"
 exit
