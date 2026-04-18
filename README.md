@@ -1,8 +1,11 @@
 graphite requires; 
 
-	pygame, tkinter, mutagen, tinytag
-	subprocess, decimal, os, time, sys, random
+	python-pygame      package manager
+	tk                 package manager
+	tinytag            pip
+	mutagen            pip
 
-graphite is a minimal, one file music player. it can play all popular music formats, including;
-.flac .wav .mp3
-.m4a .ogg .alac
+graphite is a minimal, one file music player.
+it's written in python. not much more i can say.
+
+enjoy
