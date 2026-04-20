@@ -219,12 +219,18 @@ status_label.place(x=_def_statusx,y=_def_statusy)
 
 def extractCover():
 	global _cur_album, _sel_sng
-	log = 0 # log this function. VERY useful
+	log = 1 # log this function. VERY useful
 
 	tinys = TinyTag.get(_sel_sng)
 	foundfile = 0
 
+	_logos = [
+		_logo2_directory,
+		_logo3_directory
+	]
+
 	if log == 1: print(f"\033[1;31m curalbum   {_cur_album} \033[0m"); print(f"\033[1;31m tinys.al   {tinys.album} \033[0m")
+	if log == 1: print(f"\033[1;31m old_logo   {_old_logo} \033[0m"); print(f"\033[1;31m cur_logo   {_cur_logo} \033[0m")
 
 	def fLogo():
 		if log == 1: print(f"\033[1;31mEXECUTING FLOGO()...\033[0m")
@@ -249,8 +255,8 @@ def extractCover():
 
 			if foundfile == 0:
 				if log == 1: print(f"\033[1;31mfoundfile == 0   |   case 4\033[0m")
-				if (_cur_logo == _logo3_directory and _old_logo == _logo3_directory):
-					if log == 1: print(f"\033[1;31m_cur_logo == _logo3_directory and _old_logo == _logo3_directory   |   case 5\033[0m")
+				if (_cur_logo in _logos and _old_logo in _logos):
+					if log == 1: print(f"\033[1;31m_cur_logo == _logo*_directory and _old_logo == _logo*_directory   |   case 5\033[0m")
 					fLogo()
 				if foundfile == 404:
 					if log == 1: print(f"\033[1;31mfoundfile == 404   |   case 6\033[0m")
