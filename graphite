@@ -115,7 +115,7 @@ except UnboundLocalError:
 	_def_songy = -50
 	_def_statusy = -50
 
-_graphite_version = 'graphite [1.7]' # graphite version
+_graphite_version = 'graphite [1.8]' # graphite version
 
 # greet message
 
@@ -148,7 +148,7 @@ _cur_album = None
 _cur_album = None
 _ui_state = 2
 
-_dos = Tk()						# sets window
+_dos = Tk(className='graphite')				# sets window
 _dos.geometry(str(start_geo))				# sets starting geometry
 _dos.title('graphite')					# sets window title to graphite	
 icon = PhotoImage(file=f'{_logo2_directory}')		# sets icon to graph_logo2.png from graphite-app folder. you can put your image here.
