@@ -35,7 +35,6 @@ font size = 10;
 directory to choose music from = $HOME;
 logo2 directory = $HOME/.config/graphite/logo2.png;
 logo3 directory = $HOME/.config/graphite/logo3.png;
-
 send notifs on song play = 0;
 
 dir x = 0;
@@ -54,8 +53,9 @@ status x = 220;
 status y = 0;
 " > ~/.config/graphite/graphite.conf
 
+clear
 echo "you need to install - tk, python-pillow - manually, in your package manager."
-echo "^ this is very important. please do so, otherwise graphite wont bother to start!!!!!!"
+echo "this is very important. please do so, otherwise graphite wont bother to start!!!!!!"
 
 echo "finished"
 exit

@@ -115,12 +115,7 @@ except UnboundLocalError:
 	_def_songy = -50
 	_def_statusy = -50
 
-_graphite_version = 'graphite [1.8]' # graphite version
-
-# greet message
-
-print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
-
+_graphite_version = 'graphite [1.8.1]' # graphite version
 # declare important variables
 
 start_geo = "230x230"
@@ -219,7 +214,7 @@ status_label.place(x=_def_statusx,y=_def_statusy)
 
 def extractCover():
 	global _cur_album, _sel_sng
-	log = 1 # log this function. VERY useful
+	log = 0 # log this function. VERY useful
 
 	tinys = TinyTag.get(_sel_sng)
 	foundfile = 0
@@ -270,12 +265,13 @@ def fileExists(file):
 	if os.path.exists(file):
 		return True
 	elif not os.path.exists(file):
-		print(f"error: file does not exist.\n^ {file}")
+		print(f"err:\tfile does not exist.\n\t^{file}")
 		return False
 
 def getFiles(button,playlist,plfile):
 	global _sel_sng,_sng_lst,_cur_inx,_pus,_ply,artist_label,file_extension,_sng_raw_nme,_art_nme,song_path,_graphite,cover_w,cover_h,_music_user_directory,cover_path,_notifications, _cur_album
-
+	islist = False
+	files = []
 	if playlist == False:
 		if button == 1:
 			if _music_user_directory.startswith("~"):
@@ -296,27 +292,27 @@ def getFiles(button,playlist,plfile):
 						path = path.replace("~", f"{Path.home()}", 1)
 	subprocess.run("clear")
 
-	files = []
+	if type(path) is list:
+		islist = True
+		files = path
 
-	if playlist == False:
-		if path:
-			files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
-	else:
-		#This will allow us to read the paths of songs from the user's selected playlist.
-		#The user can right click on a file in filex to add it to the playlist.
-
-		with open(plfile, 'r') as f:
-			for line in f:
-				lne = (str(line)).strip('\n')
-				if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
-					if fileExists(lne):
-						files.append(lne)
+	if islist == False:
+		if playlist == False:
+			if path:
+				files = sorted([f for f in os.listdir(path) if f.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac'))])
+		else:
+			with open(plfile, 'r') as f:
+				for line in f:
+					lne = (str(line)).strip('\n')
+					if lne.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
+						if fileExists(lne):
+							files.append(lne)
 	try:
 		if files:
 			if playlist == False:
-				_sng_lst = [os.path.join(path, f) for f in files]
-			else:
 				_sng_lst = files
+			else:
+				_sng_lst = [os.path.join(path, f) for f in files]
 			if len(_sng_lst) > 0:
 				_cur_inx = 0
 				_sel_sng = _sng_lst[_cur_inx]
@@ -325,7 +321,7 @@ def getFiles(button,playlist,plfile):
 				_pus = False
 
 				_tinytag = TinyTag.get(_sel_sng)
-				print(f"{_tinytag.year} - {_tinytag.album} by {_tinytag.artist}")
+				print(f"{_tinytag.year}  -  {_tinytag.album} by {_tinytag.artist}")
 
 				for f in _sng_lst:
 					if playlist == True:
@@ -341,7 +337,6 @@ def getFiles(button,playlist,plfile):
 			_song_label.config(text='no songs')
 			pygame.mixer.music.stop()
 			_pus = False
-
 	except Exception as e:
 		print(f"error: {e}")
 
@@ -368,6 +363,7 @@ def filex(_filex_path,playlist):
 	_dosh = 450
 	_shdots = False
 	_label_lst = []
+	return_l = False
 
 	if _cur_dir != None:
 		_filex_path = _cur_dir
@@ -379,8 +375,7 @@ def filex(_filex_path,playlist):
 	_dos2.resizable(False,False)
 	_dos2.config(bg=_bg)
 
-	if playlist == False:
-	
+	if playlist == False:	
 		_return = Label(_dos2, fg=_fg,bg=_bg,font=_fnt,text="<-",cursor='hand2')
 		_return.place(x=5,y=5)
 		_return.bind('<Enter>', lambda event: _return.config(fg='grey'))
@@ -391,7 +386,7 @@ def filex(_filex_path,playlist):
 		_ok.place(x=25,y=5)
 		_ok.bind('<Enter>', lambda event: _ok.config(fg='grey'))
 		_ok.bind('<Leave>', lambda event: _ok.config(fg=_fg))
-		_ok.bind('<Button-1>', lambda event: end_filex(False,None))
+		_ok.bind('<Button-1>', lambda event: end_filex(False,None,None))
 
 		_new = Label(_dos2,fg=_fg,bg=_bg,font=_fnt,text="new",cursor='hand2')
 		_new.place(x=45,y=5)
@@ -399,7 +394,22 @@ def filex(_filex_path,playlist):
 		_new.bind('<Leave>', lambda event: _new.config(fg=_fg))
 		_new.bind('<Button-1>', lambda event: make_playlist())
 
+		_evr = Label(_dos2,fg=_fg,bg=_bg,font=_fnt,text="everything",cursor='hand2')
+		_evr.place(x=283,y=5)
+		_evr.bind('<Enter>', lambda event: _evr.config(fg='grey'))
+		_evr.bind('<Leave>', lambda event: _evr.config(fg=_fg))
+		_evr.bind('<Button-1>', lambda event: end_filex(False,None,True))
+
 		_ent = Entry(_dos2,fg=_fg,bg=_bg,bd=0,highlightcolor=_fg,highlightbackground=_fg,font=_fnt)
+
+	def pullall():
+		l = []
+		for i in Path(_filex_path).rglob('*'):
+			p = str(i)
+			if p.endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac')):
+				l.append(f"{p}")
+		l.sort()
+		return l
 
 	def create_playlist():
 		nonlocal _filex_path, _ent
@@ -422,10 +432,12 @@ def filex(_filex_path,playlist):
 		_ent.place(x=(_dosw / 2) - 50,y=(_dosh / 2) - 10,width=100,height=20)
 		_ent.bind('<Return>', lambda event: create_playlist())
 
-	def end_filex(playlist,plname):
-		nonlocal _pl_to_return
+	def end_filex(playlist,plname, returnl):
+		nonlocal _pl_to_return, return_l
 		if playlist == True:
 			_pl_to_return = plname
+		if returnl == True:
+			return_l = True
 		_dos2.destroy()
 
 	def retur():
@@ -486,7 +498,7 @@ def filex(_filex_path,playlist):
 				if str(i.cget('text')).endswith(('.mp3','.wav','.ogg','.flac','.aac','.m4a','.alac','.png','.jpg')):
 					i.bind('<Button-3>', lambda event, it=i: writeToPlaylist(os.path.join(_filex_path, it.cget('text'))))
 			else:
-				i.bind('<Button-1>', lambda event, it=i: end_filex(True, str(os.path.join(_filex_path, it.cget('text')))))
+				i.bind('<Button-1>', lambda event, it=i: end_filex(True, str(os.path.join(_filex_path, it.cget('text'))),None))
 
 			_place_info = i.place_info()
 			_dos2.geometry(f'{_dosw}x{int(_place_info['y']) + 22}')
@@ -499,11 +511,13 @@ def filex(_filex_path,playlist):
 	shfiles()
 	_dos2.bind('<period>', lambda event: shdots())
 	_dos.wait_window(_dos2)
+	if return_l == True:
+		l = pullall()
+		return l
 	if playlist == False:
 		return _filex_path
 	elif playlist == True:
-		return _pl_to_return
-
+		return _pl_to_retur
 def getListeningDir():
 	try:
 		dirname = os.path.dirname(_sng_lst[_cur_inx].strip())
@@ -767,16 +781,22 @@ if len(sys.argv) > 1:
 		print("    --shuffle     [immediately set shuffle on]")
 		print("    --repeat      [immediately set repeat on]")
 		print("    --help        [display this help and exit]\n")
+		print("    --version     [display version and exit]\n")
 		sys.exit()
 
 	for i in _arg_lst:
 		if i.startswith("--dir="):
 			_music_user_directory = i.split("--dir=")[1]
 			_get_files = 1
-		elif i == "--shuffle":
+		elif "--sh" in i:
 			switchState(None, "shuffle")
-		elif i == "--repeat":
+		elif "--re" in i:
 			switchState(None, "repeat")
+		elif "--ve" in i:
+			print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
+			sys.exit()
+		else:
+			print(f"{str(sys.argv[0]).strip()} on {_graphite_version}")
 
 	if _get_files == 1:
 		getFiles(5,False,None)
@@ -786,4 +806,3 @@ if len(sys.argv) > 1:
 
 updateInformation()
 _dos.mainloop()
-
