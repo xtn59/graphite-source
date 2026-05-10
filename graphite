@@ -310,9 +310,12 @@ def getFiles(button,playlist,plfile):
 	try:
 		if files:
 			if playlist == False:
-				_sng_lst = files
+				if islist == True:
+					_sng_lst = files
+				else:
+					_sng_lst = [os.path.join(path, f) for f in files]
 			else:
-				_sng_lst = [os.path.join(path, f) for f in files]
+				_sng_lst = files
 			if len(_sng_lst) > 0:
 				_cur_inx = 0
 				_sel_sng = _sng_lst[_cur_inx]
