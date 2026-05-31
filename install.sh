@@ -8,7 +8,6 @@ if [[ $issu == "root" ]]; then
 	echo "You are either running this with sudo or you are root."
 	echo "Please run the script as a normal user."
 	echo "Otherwise, you'll install graphite to root."
-	exit
 fi
 
 echo "installing dependencies with pip..."
